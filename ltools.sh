@@ -3,9 +3,11 @@
 set -Eeuo pipefail
 IFS=$'\n\t'
 
-readonly LTOOLS_VERSION="1.1.0"
+readonly LTOOLS_VERSION="1.2.0"
 readonly CHECK_PLACE_URL="https://check.place"
 readonly NODEQUALITY_URL="https://run.NodeQuality.com"
+readonly SB_SOURCE_URL="https://raw.githubusercontent.com/0xdabiaoge/singbox-lite/main/singbox.sh"
+readonly SB_INSTALL_PATH="${LTOOLS_SB_INSTALL_PATH:-/usr/local/bin/sb}"
 readonly BBR_REPOSITORY="Eric86777/vps-tcp-tune"
 readonly BBR_ENTRYPOINT="net-tcp-tune.sh"
 readonly BBR_REF="${LTOOLS_BBR_REF:-main}"
@@ -238,6 +240,95 @@ run_nodequality_check() {
     run_remote_script "VPS 综合质量体检" "${NODEQUALITY_URL}" "no"
 }
 
+install_sb_tool() {
+    local install_directory=""
+    local script_file=""
+
+    if [[ "${SB_INSTALL_PATH}" != /* ]]; then
+        error "VPS节点搭建工具的安装路径必须是绝对路径。"
+        return 1
+    fi
+
+    command -v install >/dev/null 2>&1 || {
+        error "系统缺少 install 命令，无法部署 VPS节点搭建工具。"
+        return 1
+    }
+
+    script_file="$(mktemp "${TMPDIR:-/tmp}/ltools-sb.XXXXXXXX.sh")" || {
+        error "无法创建临时文件。"
+        return 1
+    }
+    ACTIVE_TEMP_FILE="${script_file}"
+    chmod 600 "${script_file}"
+
+    info "首次运行，正在下载并部署到 ${SB_INSTALL_PATH}"
+    info "来源：${SB_SOURCE_URL}"
+
+    if ! download_script "${SB_SOURCE_URL}" "${script_file}"; then
+        error "VPS节点搭建工具下载失败。"
+        cleanup
+        return 1
+    fi
+
+    if ! verify_script "${script_file}"; then
+        cleanup
+        return 1
+    fi
+
+    install_directory="$(dirname "${SB_INSTALL_PATH}")"
+    if [[ ! -d "${install_directory}" ]] && \
+        ! run_as_root install -d -m 0755 "${install_directory}"; then
+        error "无法创建安装目录：${install_directory}"
+        cleanup
+        return 1
+    fi
+
+    if ! run_as_root install -m 0755 "${script_file}" "${SB_INSTALL_PATH}"; then
+        error "无法安装到 ${SB_INSTALL_PATH}"
+        cleanup
+        return 1
+    fi
+
+    cleanup
+    success "VPS节点搭建工具已持久安装。"
+}
+
+run_vps_node_builder() {
+    local exit_code=0
+
+    printf '\n%b\n' "${WHITE}VPS节点搭建${RESET}"
+
+    if [[ -e "${SB_INSTALL_PATH}" && ! -f "${SB_INSTALL_PATH}" ]]; then
+        error "安装路径已存在且不是普通文件：${SB_INSTALL_PATH}"
+        return 1
+    fi
+
+    if [[ ! -f "${SB_INSTALL_PATH}" ]]; then
+        install_sb_tool || return 1
+    else
+        info "使用已安装的本地工具：${SB_INSTALL_PATH}"
+        if [[ ! -r "${SB_INSTALL_PATH}" || ! -x "${SB_INSTALL_PATH}" ]] && \
+            ! run_as_root chmod 0755 "${SB_INSTALL_PATH}"; then
+            error "无法为本地工具恢复执行权限。"
+            return 1
+        fi
+    fi
+
+    if ! bash -n "${SB_INSTALL_PATH}"; then
+        error "本地 VPS节点搭建工具未通过 Bash 语法检查，已拒绝执行。"
+        return 1
+    fi
+
+    if run_as_root "${SB_INSTALL_PATH}"; then
+        success "VPS节点搭建工具已结束。"
+    else
+        exit_code=$?
+        error "VPS节点搭建工具退出，状态码：${exit_code}"
+    fi
+
+    return "${exit_code}"
+}
+
 run_bbr_tool() {
     local answer=""
     local url=""
@@ -285,6 +376,7 @@ show_menu() {
     printf '  %b2%b  硬件质量体检      %bCheck.Place -H%b\n' "${CYAN}" "${RESET}" "${DIM}" "${RESET}"
     printf '  %b3%b  BBR 网络优化      %bvps-tcp-tune%b\n' "${GREEN}" "${RESET}" "${DIM}" "${RESET}"
     printf '  %b4%b  VPS 综合质量体检  %bNodeQuality%b\n' "${CYAN}" "${RESET}" "${DIM}" "${RESET}"
+    printf '  %b5%b  VPS节点搭建        %bsingbox-lite · 本地%b\n' "${GREEN}" "${RESET}" "${DIM}" "${RESET}"
     printf '\n'
     printf '  %b0%b  退出\n' "${DIM}" "${RESET}"
     printf '\n'
@@ -303,7 +395,7 @@ main() {
 
     while true; do
         show_menu
-        printf '%b' "${CYAN}请选择${RESET} [0-4]："
+        printf '%b' "${CYAN}请选择${RESET} [0-5]："
         if ! IFS= read -r choice; then
             printf '\n'
             return 0
@@ -326,12 +418,16 @@ main() {
                 run_nodequality_check || true
                 pause_menu
                 ;;
+            5)
+                run_vps_node_builder || true
+                pause_menu
+                ;;
             0|q|Q)
                 printf '\n%b\n' "${DIM}已退出 LTOOLS。${RESET}"
                 return 0
                 ;;
             *)
-                warn "无效选项，请输入 0、1、2、3 或 4。"
+                warn "无效选项，请输入 0、1、2、3、4 或 5。"
                 pause_menu
                 ;;
         esac
