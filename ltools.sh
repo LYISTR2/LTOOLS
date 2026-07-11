@@ -3,8 +3,9 @@
 set -Eeuo pipefail
 IFS=$'\n\t'
 
-readonly LTOOLS_VERSION="1.0.0"
+readonly LTOOLS_VERSION="1.1.0"
 readonly CHECK_PLACE_URL="https://check.place"
+readonly NODEQUALITY_URL="https://run.NodeQuality.com"
 readonly BBR_REPOSITORY="Eric86777/vps-tcp-tune"
 readonly BBR_ENTRYPOINT="net-tcp-tune.sh"
 readonly BBR_REF="${LTOOLS_BBR_REF:-main}"
@@ -233,6 +234,10 @@ run_hardware_check() {
     run_remote_script "硬件质量体检" "${CHECK_PLACE_URL}" "no" -H
 }
 
+run_nodequality_check() {
+    run_remote_script "VPS 综合质量体检" "${NODEQUALITY_URL}" "no"
+}
+
 run_bbr_tool() {
     local answer=""
     local url=""
@@ -279,6 +284,7 @@ show_menu() {
     printf '  %b1%b  网络质量体检      %bCheck.Place -N%b\n' "${CYAN}" "${RESET}" "${DIM}" "${RESET}"
     printf '  %b2%b  硬件质量体检      %bCheck.Place -H%b\n' "${CYAN}" "${RESET}" "${DIM}" "${RESET}"
     printf '  %b3%b  BBR 网络优化      %bvps-tcp-tune%b\n' "${GREEN}" "${RESET}" "${DIM}" "${RESET}"
+    printf '  %b4%b  VPS 综合质量体检  %bNodeQuality%b\n' "${CYAN}" "${RESET}" "${DIM}" "${RESET}"
     printf '\n'
     printf '  %b0%b  退出\n' "${DIM}" "${RESET}"
     printf '\n'
@@ -297,7 +303,7 @@ main() {
 
     while true; do
         show_menu
-        printf '%b' "${CYAN}请选择${RESET} [0-3]："
+        printf '%b' "${CYAN}请选择${RESET} [0-4]："
         if ! IFS= read -r choice; then
             printf '\n'
             return 0
@@ -316,12 +322,16 @@ main() {
                 run_bbr_tool || true
                 pause_menu
                 ;;
+            4)
+                run_nodequality_check || true
+                pause_menu
+                ;;
             0|q|Q)
                 printf '\n%b\n' "${DIM}已退出 LTOOLS。${RESET}"
                 return 0
                 ;;
             *)
-                warn "无效选项，请输入 0、1、2 或 3。"
+                warn "无效选项，请输入 0、1、2、3 或 4。"
                 pause_menu
                 ;;
         esac
