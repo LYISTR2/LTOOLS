@@ -3,11 +3,16 @@
 set -Eeuo pipefail
 IFS=$'\n\t'
 
-readonly LTOOLS_VERSION="1.2.0"
+readonly LTOOLS_VERSION="2.0.0"
 readonly CHECK_PLACE_URL="https://check.place"
 readonly NODEQUALITY_URL="https://run.NodeQuality.com"
+readonly NWS_URL="https://nws.sh"
+readonly TCPQUALITY_URL="https://tcpquality.ibsgss.uk/run"
+readonly SPEEDTEST_SETUP_URL="https://packagecloud.io/install/repositories/ookla/speedtest-cli/script.deb.sh"
 readonly SB_SOURCE_URL="https://raw.githubusercontent.com/0xdabiaoge/singbox-lite/main/singbox.sh"
 readonly SB_INSTALL_PATH="${LTOOLS_SB_INSTALL_PATH:-/usr/local/bin/sb}"
+readonly DOG_SOURCE_URL="https://raw.githubusercontent.com/zywe03/realm-xwPF/main/port-traffic-dog.sh"
+readonly DOG_INSTALL_PATH="${LTOOLS_DOG_INSTALL_PATH:-/usr/local/bin/port-traffic-dog.sh}"
 readonly BBR_REPOSITORY="Eric86777/vps-tcp-tune"
 readonly BBR_ENTRYPOINT="net-tcp-tune.sh"
 readonly BBR_REF="${LTOOLS_BBR_REF:-main}"
@@ -240,32 +245,114 @@ run_nodequality_check() {
     run_remote_script "VPS 综合质量体检" "${NODEQUALITY_URL}" "no"
 }
 
-install_sb_tool() {
+install_speedtest_cli() {
+    local setup_file=""
+
+    if ! command -v apt-get >/dev/null 2>&1; then
+        error "未找到 apt-get，无法安装官方 Ookla Speedtest CLI。"
+        return 1
+    fi
+
+    setup_file="$(mktemp "${TMPDIR:-/tmp}/ltools-speedtest.XXXXXXXX.sh")" || {
+        error "无法创建临时文件。"
+        return 1
+    }
+    ACTIVE_TEMP_FILE="${setup_file}"
+    chmod 600 "${setup_file}"
+
+    info "首次运行，正在配置 Ookla 官方软件源。"
+    info "来源：${SPEEDTEST_SETUP_URL}"
+
+    if ! download_script "${SPEEDTEST_SETUP_URL}" "${setup_file}"; then
+        error "Speedtest 软件源配置脚本下载失败。"
+        cleanup
+        return 1
+    fi
+
+    if ! verify_script "${setup_file}"; then
+        cleanup
+        return 1
+    fi
+
+    if ! run_as_root bash "${setup_file}"; then
+        error "Ookla 软件源配置失败。"
+        cleanup
+        return 1
+    fi
+    cleanup
+
+    if ! run_as_root env DEBIAN_FRONTEND=noninteractive apt-get install -y speedtest; then
+        error "Speedtest CLI 安装失败。"
+        return 1
+    fi
+    hash -r
+
+    command -v speedtest >/dev/null 2>&1 || {
+        error "安装完成后仍未找到 speedtest 命令。"
+        return 1
+    }
+
+    success "Ookla Speedtest CLI 已安装。"
+}
+
+run_speedtest_cli() {
+    local exit_code=0
+
+    printf '\n%b\n' "${WHITE}Speedtest测速${RESET}"
+
+    if ! command -v speedtest >/dev/null 2>&1; then
+        install_speedtest_cli || return 1
+    else
+        info "使用已安装的本地命令：$(command -v speedtest)"
+    fi
+
+    if speedtest; then
+        success "Speedtest测速已结束。"
+    else
+        exit_code=$?
+        error "Speedtest测速退出，状态码：${exit_code}"
+    fi
+
+    return "${exit_code}"
+}
+
+run_international_speedtest() {
+    run_remote_script "国际测速" "${NWS_URL}" "no"
+}
+
+run_tcpquality_check() {
+    run_remote_script "TCP质量测试" "${TCPQUALITY_URL}" "yes"
+}
+
+install_persistent_tool() {
+    local title="$1"
+    local source_url="$2"
+    local install_path="$3"
     local install_directory=""
     local script_file=""
 
-    if [[ "${SB_INSTALL_PATH}" != /* ]]; then
-        error "VPS节点搭建工具的安装路径必须是绝对路径。"
+    if [[ "${install_path}" != /* ]]; then
+        error "${title}的安装路径必须是绝对路径。"
         return 1
     fi
 
     command -v install >/dev/null 2>&1 || {
-        error "系统缺少 install 命令，无法部署 VPS节点搭建工具。"
+        error "系统缺少 install 命令，无法部署 ${title}。"
         return 1
     }
 
-    script_file="$(mktemp "${TMPDIR:-/tmp}/ltools-sb.XXXXXXXX.sh")" || {
+    script_file="$(mktemp "${TMPDIR:-/tmp}/ltools-tool.XXXXXXXX.sh")" || {
         error "无法创建临时文件。"
         return 1
     }
     ACTIVE_TEMP_FILE="${script_file}"
     chmod 600 "${script_file}"
 
-    info "首次运行，正在下载并部署到 ${SB_INSTALL_PATH}"
-    info "来源：${SB_SOURCE_URL}"
+    info "首次运行，正在下载并部署到 ${install_path}"
+    info "来源：${source_url}"
 
-    if ! download_script "${SB_SOURCE_URL}" "${script_file}"; then
-        error "VPS节点搭建工具下载失败。"
+    if ! download_script "${source_url}" "${script_file}"; then
+        error "${title}下载失败。"
         cleanup
         return 1
     fi
@@ -275,7 +362,7 @@ install_sb_tool() {
         return 1
     fi
 
-    install_directory="$(dirname "${SB_INSTALL_PATH}")"
+    install_directory="$(dirname "${install_path}")"
     if [[ ! -d "${install_directory}" ]] && \
         ! run_as_root install -d -m 0755 "${install_directory}"; then
         error "无法创建安装目录：${install_directory}"
@@ -283,50 +370,61 @@ install_sb_tool() {
         return 1
     fi
 
-    if ! run_as_root install -m 0755 "${script_file}" "${SB_INSTALL_PATH}"; then
-        error "无法安装到 ${SB_INSTALL_PATH}"
+    if ! run_as_root install -m 0755 "${script_file}" "${install_path}"; then
+        error "无法安装到 ${install_path}"
         cleanup
         return 1
     fi
 
     cleanup
-    success "VPS节点搭建工具已持久安装。"
+    success "${title}已持久安装。"
 }
 
-run_vps_node_builder() {
+run_persistent_tool() {
+    local title="$1"
+    local source_url="$2"
+    local install_path="$3"
     local exit_code=0
 
-    printf '\n%b\n' "${WHITE}VPS节点搭建${RESET}"
+    printf '\n%b\n' "${WHITE}${title}${RESET}"
 
-    if [[ -e "${SB_INSTALL_PATH}" && ! -f "${SB_INSTALL_PATH}" ]]; then
-        error "安装路径已存在且不是普通文件：${SB_INSTALL_PATH}"
+    if [[ -e "${install_path}" && ! -f "${install_path}" ]]; then
+        error "安装路径已存在且不是普通文件：${install_path}"
         return 1
     fi
 
-    if [[ ! -f "${SB_INSTALL_PATH}" ]]; then
-        install_sb_tool || return 1
+    if [[ ! -f "${install_path}" ]]; then
+        install_persistent_tool "${title}" "${source_url}" "${install_path}" || return 1
     else
-        info "使用已安装的本地工具：${SB_INSTALL_PATH}"
-        if [[ ! -r "${SB_INSTALL_PATH}" || ! -x "${SB_INSTALL_PATH}" ]] && \
-            ! run_as_root chmod 0755 "${SB_INSTALL_PATH}"; then
+        info "使用已安装的本地工具：${install_path}"
+        if [[ ! -r "${install_path}" || ! -x "${install_path}" ]] && \
+            ! run_as_root chmod 0755 "${install_path}"; then
             error "无法为本地工具恢复执行权限。"
             return 1
         fi
     fi
 
-    if ! bash -n "${SB_INSTALL_PATH}"; then
-        error "本地 VPS节点搭建工具未通过 Bash 语法检查，已拒绝执行。"
+    if ! bash -n "${install_path}"; then
+        error "本地 ${title}未通过 Bash 语法检查，已拒绝执行。"
         return 1
     fi
 
-    if run_as_root "${SB_INSTALL_PATH}"; then
-        success "VPS节点搭建工具已结束。"
+    if run_as_root "${install_path}"; then
+        success "${title}已结束。"
     else
         exit_code=$?
-        error "VPS节点搭建工具退出，状态码：${exit_code}"
+        error "${title}退出，状态码：${exit_code}"
     fi
 
     return "${exit_code}"
+}
+
+run_vps_node_builder() {
+    run_persistent_tool "VPS节点搭建" "${SB_SOURCE_URL}" "${SB_INSTALL_PATH}"
+}
+
+run_traffic_dog() {
+    run_persistent_tool "流量狗脚本" "${DOG_SOURCE_URL}" "${DOG_INSTALL_PATH}"
 }
 
 run_bbr_tool() {
@@ -372,11 +470,18 @@ show_menu() {
     printf '\n%b\n' "${WHITE}LTOOLS${RESET}  ${DIM}VPS diagnostics & tuning${RESET}"
     printf '%b\n' "${DIM}${OS_NAME} · v${LTOOLS_VERSION}${RESET}"
     printf '\n'
+    printf '%b\n' "${WHITE}测试类${RESET}"
     printf '  %b1%b  网络质量体检      %bCheck.Place -N%b\n' "${CYAN}" "${RESET}" "${DIM}" "${RESET}"
     printf '  %b2%b  硬件质量体检      %bCheck.Place -H%b\n' "${CYAN}" "${RESET}" "${DIM}" "${RESET}"
-    printf '  %b3%b  BBR 网络优化      %bvps-tcp-tune%b\n' "${GREEN}" "${RESET}" "${DIM}" "${RESET}"
-    printf '  %b4%b  VPS 综合质量体检  %bNodeQuality%b\n' "${CYAN}" "${RESET}" "${DIM}" "${RESET}"
-    printf '  %b5%b  VPS节点搭建        %bsingbox-lite · 本地%b\n' "${GREEN}" "${RESET}" "${DIM}" "${RESET}"
+    printf '  %b3%b  VPS 综合质量体检  %bNodeQuality%b\n' "${CYAN}" "${RESET}" "${DIM}" "${RESET}"
+    printf '  %b4%b  Speedtest测速      %bOokla · 本地%b\n' "${CYAN}" "${RESET}" "${DIM}" "${RESET}"
+    printf '  %b5%b  国际测速          %bnws.sh%b\n' "${CYAN}" "${RESET}" "${DIM}" "${RESET}"
+    printf '  %b6%b  TCP质量测试       %bTcpQuality%b\n' "${CYAN}" "${RESET}" "${DIM}" "${RESET}"
+    printf '\n'
+    printf '%b\n' "${WHITE}实用类工具${RESET}"
+    printf '  %b7%b  BBR 网络优化      %bvps-tcp-tune%b\n' "${GREEN}" "${RESET}" "${DIM}" "${RESET}"
+    printf '  %b8%b  VPS节点搭建        %bsingbox-lite · 本地%b\n' "${GREEN}" "${RESET}" "${DIM}" "${RESET}"
+    printf '  %b9%b  流量狗脚本        %bport-traffic-dog · 本地%b\n' "${GREEN}" "${RESET}" "${DIM}" "${RESET}"
     printf '\n'
     printf '  %b0%b  退出\n' "${DIM}" "${RESET}"
     printf '\n'
@@ -395,7 +500,7 @@ main() {
 
     while true; do
         show_menu
-        printf '%b' "${CYAN}请选择${RESET} [0-5]："
+        printf '%b' "${CYAN}请选择${RESET} [0-9]："
         if ! IFS= read -r choice; then
             printf '\n'
             return 0
@@ -411,15 +516,31 @@ main() {
                 pause_menu
                 ;;
             3)
-                run_bbr_tool || true
-                pause_menu
-                ;;
-            4)
                 run_nodequality_check || true
                 pause_menu
                 ;;
+            4)
+                run_speedtest_cli || true
+                pause_menu
+                ;;
             5)
+                run_international_speedtest || true
+                pause_menu
+                ;;
+            6)
+                run_tcpquality_check || true
+                pause_menu
+                ;;
+            7)
+                run_bbr_tool || true
+                pause_menu
+                ;;
+            8)
                 run_vps_node_builder || true
+                pause_menu
+                ;;
+            9)
+                run_traffic_dog || true
                 pause_menu
                 ;;
             0|q|Q)
@@ -427,7 +548,7 @@ main() {
                 return 0
                 ;;
             *)
-                warn "无效选项，请输入 0、1、2、3、4 或 5。"
+                warn "无效选项，请输入 0 到 9。"
                 pause_menu
                 ;;
         esac
