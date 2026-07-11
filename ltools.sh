@@ -3,7 +3,7 @@
 set -Eeuo pipefail
 IFS=$'\n\t'
 
-readonly LTOOLS_VERSION="2.0.0"
+readonly LTOOLS_VERSION="2.1.0"
 readonly CHECK_PLACE_URL="https://check.place"
 readonly NODEQUALITY_URL="https://run.NodeQuality.com"
 readonly NWS_URL="https://nws.sh"
@@ -13,6 +13,8 @@ readonly SB_SOURCE_URL="https://raw.githubusercontent.com/0xdabiaoge/singbox-lit
 readonly SB_INSTALL_PATH="${LTOOLS_SB_INSTALL_PATH:-/usr/local/bin/sb}"
 readonly DOG_SOURCE_URL="https://raw.githubusercontent.com/zywe03/realm-xwPF/main/port-traffic-dog.sh"
 readonly DOG_INSTALL_PATH="${LTOOLS_DOG_INSTALL_PATH:-/usr/local/bin/port-traffic-dog.sh}"
+readonly NFT_SOURCE_URL="https://raw.githubusercontent.com/LYISTR2/nft-forward/main/nft-forward.sh"
+readonly NFT_INSTALL_PATH="${LTOOLS_NFT_INSTALL_PATH:-/usr/local/bin/nft-forward}"
 readonly BBR_REPOSITORY="Eric86777/vps-tcp-tune"
 readonly BBR_ENTRYPOINT="net-tcp-tune.sh"
 readonly BBR_REF="${LTOOLS_BBR_REF:-main}"
@@ -427,6 +429,10 @@ run_traffic_dog() {
     run_persistent_tool "流量狗脚本" "${DOG_SOURCE_URL}" "${DOG_INSTALL_PATH}"
 }
 
+run_nft_forward() {
+    run_persistent_tool "NFT 转发脚本" "${NFT_SOURCE_URL}" "${NFT_INSTALL_PATH}"
+}
+
 run_bbr_tool() {
     local answer=""
     local url=""
@@ -482,6 +488,7 @@ show_menu() {
     printf '  %b7%b  BBR 网络优化      %bvps-tcp-tune%b\n' "${GREEN}" "${RESET}" "${DIM}" "${RESET}"
     printf '  %b8%b  VPS节点搭建        %bsingbox-lite · 本地%b\n' "${GREEN}" "${RESET}" "${DIM}" "${RESET}"
     printf '  %b9%b  流量狗脚本        %bport-traffic-dog · 本地%b\n' "${GREEN}" "${RESET}" "${DIM}" "${RESET}"
+    printf ' %b10%b  NFT 转发脚本      %bnft-forward · 本地%b\n' "${GREEN}" "${RESET}" "${DIM}" "${RESET}"
     printf '\n'
     printf '  %b0%b  退出\n' "${DIM}" "${RESET}"
     printf '\n'
@@ -500,7 +507,7 @@ main() {
 
     while true; do
         show_menu
-        printf '%b' "${CYAN}请选择${RESET} [0-9]："
+        printf '%b' "${CYAN}请选择${RESET} [0-10]："
         if ! IFS= read -r choice; then
             printf '\n'
             return 0
@@ -543,12 +550,16 @@ main() {
                 run_traffic_dog || true
                 pause_menu
                 ;;
+            10)
+                run_nft_forward || true
+                pause_menu
+                ;;
             0|q|Q)
                 printf '\n%b\n' "${DIM}已退出 LTOOLS。${RESET}"
                 return 0
                 ;;
             *)
-                warn "无效选项，请输入 0 到 9。"
+                warn "无效选项，请输入 0 到 10。"
                 pause_menu
                 ;;
         esac
