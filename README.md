@@ -28,6 +28,20 @@ sudo bash ltools.sh
 
 BBR 工具会修改内核或网络参数，运行前有独立确认步骤。首次安装新内核后，请按照上游脚本提示决定是否重启，不要在没有 VPS 控制台或快照的情况下盲目操作。
 
+## 公开仓库一键调用
+
+推荐使用下面这一条命令。它会强制 HTTPS、下载到临时文件、运行 Bash 语法检查，并在退出后自动清理：
+
+```bash
+bash -c 'set -Eeuo pipefail; f="$(mktemp)"; trap '\''rm -f "$f"'\'' EXIT; curl -qfsSL --proto "=https" --tlsv1.2 "https://raw.githubusercontent.com/LYISTR2/LTOOLS/refs/heads/main/ltools.sh?$(date +%s)" -o "$f"; bash -n "$f"; chmod 700 "$f"; if (( EUID == 0 )); then bash "$f"; elif command -v sudo >/dev/null 2>&1; then sudo bash "$f"; else printf "需要 root 或 sudo。\n" >&2; exit 1; fi'
+```
+
+已经以 root 登录 VPS，并且完全信任当前 `main` 分支时，也可以使用最短命令：
+
+```bash
+bash <(curl -qfsSL "https://raw.githubusercontent.com/LYISTR2/LTOOLS/refs/heads/main/ltools.sh?$(date +%s)")
+```
+
 ## 部署为 GitHub 私有仓库
 
 仓库应先按照 [GitHub 官方可见性说明](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/managing-repository-settings/setting-repository-visibility) 设为私有：
