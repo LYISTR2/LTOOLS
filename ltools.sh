@@ -3,7 +3,7 @@
 set -Eeuo pipefail
 IFS=$'\n\t'
 
-readonly LTOOLS_VERSION="2.2.0"
+readonly LTOOLS_VERSION="2.3.0"
 readonly CHECK_PLACE_URL="https://check.place"
 readonly NODEQUALITY_URL="https://run.NodeQuality.com"
 readonly NWS_URL="https://nws.sh"
@@ -15,6 +15,7 @@ readonly DOG_SOURCE_URL="https://raw.githubusercontent.com/zywe03/realm-xwPF/mai
 readonly DOG_INSTALL_PATH="${LTOOLS_DOG_INSTALL_PATH:-/usr/local/bin/port-traffic-dog.sh}"
 readonly NFT_SOURCE_URL="https://raw.githubusercontent.com/LYISTR2/nft-forward/main/nft-forward.sh"
 readonly NFT_INSTALL_PATH="${LTOOLS_NFT_INSTALL_PATH:-/usr/local/bin/nft-forward}"
+readonly CPA_SOURCE_URL="https://kejilion.sh"
 readonly BBR_REPOSITORY="Eric86777/vps-tcp-tune"
 readonly BBR_ENTRYPOINT="net-tcp-tune.sh"
 readonly BBR_REF="${LTOOLS_BBR_REF:-main}"
@@ -462,6 +463,24 @@ run_nft_forward() {
     run_persistent_tool "NFT 转发脚本" "${NFT_SOURCE_URL}" "${NFT_INSTALL_PATH}"
 }
 
+run_cpa_install() {
+    local answer=""
+
+    printf '\n%b\n' "${WHITE}CPA软件安装${RESET}"
+    warn "此操作将通过 Docker 部署 CLIProxyAPI，并修改 /home/docker 下的应用文件。"
+    printf '%b' "${CYAN}继续运行 kejilion 应用安装器？${RESET} [y/N] "
+    IFS= read -r answer || return 1
+
+    case "${answer}" in
+        y|Y|yes|YES|Yes)
+            run_remote_script "CPA软件安装" "${CPA_SOURCE_URL}" "yes" app CLIProxyAPI
+            ;;
+        *)
+            info "已取消 CPA软件安装。"
+            ;;
+    esac
+}
+
 run_bbr_tool() {
     local answer=""
     local url=""
@@ -630,9 +649,9 @@ build_menu_lines() {
     local -a test_numbers=("1" "2" "3" "4" "5" "6")
     local -a test_labels=("网络质量体检" "硬件质量体检" "VPS 综合质量体检" "Speedtest测速" "国际测速" "TCP质量测试")
     local -a test_hints=("Check.Place -N" "Check.Place -H" "NodeQuality" "Ookla · 本地" "nws.sh" "TcpQuality")
-    local -a tool_numbers=("7" "8" "9" "10")
-    local -a tool_labels=("BBR 网络优化" "VPS节点搭建" "流量狗脚本" "NFT 转发脚本")
-    local -a tool_hints=("vps-tcp-tune" "singbox-lite · 本地" "port-traffic-dog · 本地" "nft-forward · 本地")
+    local -a tool_numbers=("7" "8" "9" "10" "11")
+    local -a tool_labels=("BBR 网络优化" "VPS节点搭建" "流量狗脚本" "NFT 转发脚本" "CPA软件安装")
+    local -a tool_hints=("vps-tcp-tune" "singbox-lite · 本地" "port-traffic-dog · 本地" "nft-forward · 本地" "kejilion.sh · CLIProxyAPI")
     local -a all_numbers=("${test_numbers[@]}" "${tool_numbers[@]}" "0")
     local -a all_labels=("${test_labels[@]}" "${tool_labels[@]}" "退出")
 
@@ -778,7 +797,7 @@ main() {
 
     while true; do
         show_menu
-        printf '请选择 [0-10]: '
+        printf '请选择 [0-11]: '
         if ! IFS= read -r choice; then
             printf '\n'
             return 0
@@ -825,12 +844,16 @@ main() {
                 run_nft_forward || true
                 pause_menu
                 ;;
+            11)
+                run_cpa_install || true
+                pause_menu
+                ;;
             0|q|Q)
                 printf '\n%b\n' "${DIM}已退出 LTOOLS。${RESET}"
                 return 0
                 ;;
             *)
-                warn "无效选项，请输入 0 到 10。"
+                warn "无效选项，请输入 0 到 11。"
                 pause_menu
                 ;;
         esac
