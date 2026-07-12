@@ -3,7 +3,7 @@
 set -Eeuo pipefail
 IFS=$'\n\t'
 
-readonly LTOOLS_VERSION="2.3.0"
+readonly LTOOLS_VERSION="2.4.0"
 readonly CHECK_PLACE_URL="https://check.place"
 readonly NODEQUALITY_URL="https://run.NodeQuality.com"
 readonly NWS_URL="https://nws.sh"
@@ -16,9 +16,8 @@ readonly DOG_INSTALL_PATH="${LTOOLS_DOG_INSTALL_PATH:-/usr/local/bin/port-traffi
 readonly NFT_SOURCE_URL="https://raw.githubusercontent.com/LYISTR2/nft-forward/main/nft-forward.sh"
 readonly NFT_INSTALL_PATH="${LTOOLS_NFT_INSTALL_PATH:-/usr/local/bin/nft-forward}"
 readonly CPA_SOURCE_URL="https://kejilion.sh"
-readonly BBR_REPOSITORY="Eric86777/vps-tcp-tune"
-readonly BBR_ENTRYPOINT="net-tcp-tune.sh"
-readonly BBR_REF="${LTOOLS_BBR_REF:-main}"
+readonly LOCAL_TUNE_REF="${LTOOLS_TUNE_REF:-main}"
+readonly LOCAL_TUNE_CORE_URL="https://raw.githubusercontent.com/LYISTR2/LTOOLS/refs/heads/${LOCAL_TUNE_REF}/vps-tcp-tune-local/upstream/net-tcp-tune.sh"
 
 OS_ID="unknown"
 OS_NAME="Linux"
@@ -481,30 +480,90 @@ run_cpa_install() {
     esac
 }
 
-run_bbr_tool() {
-    local answer=""
-    local url=""
+run_local_tune_action() {
+    local action="$1"
+    local label="$2"
 
-    if [[ ! "${BBR_REF}" =~ ^[A-Za-z0-9._/-]+$ ]]; then
-        error "LTOOLS_BBR_REF 含有非法字符。"
+    warn "此功能可能修改内核、网络或系统配置，请确认已有 VPS 控制台或快照。"
+    run_remote_script "${label}" "${LOCAL_TUNE_CORE_URL}?_=$(date +%s)" "yes" --action "${action}"
+}
+
+local_tune_category() {
+    local title="$1"
+    shift
+    local -a entries=("$@")
+    local entry="" number="" label="" choice=""
+
+    while true; do
+        clear_screen
+        printf '\n%b\n\n' "${BRIGHT_CYAN}${title}${RESET}"
+        for entry in "${entries[@]}"; do
+            IFS='|' read -r number label <<< "${entry}"
+            printf '  %b%3s%b  %s\n' "${BLUE}" "${number}" "${RESET}" "${label}"
+        done
+        printf '\n  %b  0  返回分类菜单%b\n\n' "${RED}" "${RESET}"
+        printf '请选择功能编号: '
+        IFS= read -r choice || return 0
+        [[ "${choice}" == "0" ]] && return 0
+
+        for entry in "${entries[@]}"; do
+            IFS='|' read -r number label <<< "${entry}"
+            if [[ "${choice}" == "${number}" ]]; then
+                run_local_tune_action "${number}" "${label}" || true
+                pause_menu
+                break
+            fi
+        done
+        if [[ "${choice}" != "${number}" ]]; then
+            warn "无效功能编号。"
+            pause_menu
+        fi
+    done
+}
+
+run_local_tune_toolbox() {
+    local choice=""
+
+    if [[ ! "${LOCAL_TUNE_REF}" =~ ^[A-Za-z0-9._/-]+$ ]]; then
+        error "LTOOLS_TUNE_REF 含有非法字符。"
         return 1
     fi
 
-    url="https://raw.githubusercontent.com/${BBR_REPOSITORY}/${BBR_REF}/${BBR_ENTRYPOINT}?_=$(date +%s)"
+    while true; do
+        clear_screen
+        printf '\n%b\n' "${BRIGHT_CYAN}VPS TCP Tune · LTOOLS 本地化版${RESET}"
+        printf '%b\n\n' "${DIM_GRAY}分类菜单已内置；功能核心来自当前 LTOOLS 仓库。${RESET}"
+        printf '  %b 1%b  内核管理\n' "${BLUE}" "${RESET}"
+        printf '  %b 2%b  BBR / 网络优化\n' "${BLUE}" "${RESET}"
+        printf '  %b 3%b  系统配置\n' "${BLUE}" "${RESET}"
+        printf '  %b 4%b  代理部署\n' "${BLUE}" "${RESET}"
+        printf '  %b 5%b  IP 质量检测\n' "${BLUE}" "${RESET}"
+        printf '  %b 6%b  网络测试\n' "${BLUE}" "${RESET}"
+        printf '  %b 7%b  流媒体 / AI 检测\n' "${BLUE}" "${RESET}"
+        printf '  %b 8%b  第三方工具\n' "${BLUE}" "${RESET}"
+        printf '  %b 9%b  AI 代理服务\n' "${BLUE}" "${RESET}"
+        printf '  %b10%b  流量与端口管理\n' "${BLUE}" "${RESET}"
+        printf '  %b11%b  一键优化与维护\n' "${BLUE}" "${RESET}"
+        printf '\n  %b 0  返回 LTOOLS 主菜单%b\n\n' "${RED}" "${RESET}"
+        printf '请选择分类 [0-11]: '
+        IFS= read -r choice || return 0
 
-    printf '\n%b\n' "${WHITE}BBR 网络优化${RESET}"
-    warn "此工具可能更换内核、修改网络参数并要求重启 VPS。"
-    printf '%b' "${CYAN}继续运行上游脚本？${RESET} [y/N] "
-    IFS= read -r answer || return 1
-
-    case "${answer}" in
-        y|Y|yes|YES|Yes)
-            run_remote_script "BBR 网络优化" "${url}" "yes"
-            ;;
-        *)
-            info "已取消 BBR 网络优化。"
-            ;;
-    esac
+        case "${choice}" in
+            1) local_tune_category "内核管理" "1|安装 / 更新 XanMod 内核 + BBR v3" "2|卸载 XanMod 内核" ;;
+            2) local_tune_category "BBR / 网络优化" "3|BBR 直连 / 落地优化（智能带宽检测）" "5|DNS 净化与加固" "6|Realm 转发 timeout 修复" ;;
+            3) local_tune_category "系统配置" "7|设置 IPv4 / IPv6 优先级" "8|IPv6 管理" "9|设置临时 SOCKS5 代理" "10|虚拟内存管理" "11|查看系统详细状态" ;;
+            4) local_tune_category "代理部署" "12|Snell 协议管理" "13|Xray 一键多协议" "14|禁止端口通过中国大陆直连" "15|SOCKS5 代理管理" "16|Sub-Store 多实例管理" "17|一键反向代理" ;;
+            5) local_tune_category "IP 质量检测" "18|IP 质量检测（IPv4 + IPv6）" "19|IP 质量检测（仅 IPv4）" ;;
+            6) local_tune_category "网络测试" "20|服务器带宽测试" "21|iperf3 单线程测试" "22|国际互联速度测试" "23|网络延迟质量检测" "24|三网回程路由测试" ;;
+            7) local_tune_category "流媒体 / AI 检测" "25|IP 媒体 / AI 解锁检测" "26|NQ 一键检测" ;;
+            8) local_tune_category "第三方工具" "27|zywe_realm 转发脚本" "28|F 佬 sing-box 脚本" "29|科技 lion 脚本" "30|NS 论坛 CAKE 调优" "31|科技 lion 高性能模式" ;;
+            9) local_tune_category "AI 代理服务" "32|AI 代理工具箱" ;;
+            10) local_tune_category "流量与端口管理" "33|端口流量计费与到期管理" ;;
+            11) local_tune_category "一键优化与维护" "66|一键全自动优化（BBR v3 + 网络调优）" "99|完全卸载此套件管理的内容" ;;
+            0) return 0 ;;
+            *) warn "无效分类。"; pause_menu ;;
+        esac
+    done
 }
 
 pause_menu() {
@@ -650,8 +709,8 @@ build_menu_lines() {
     local -a test_labels=("网络质量体检" "硬件质量体检" "VPS 综合质量体检" "Speedtest测速" "国际测速" "TCP质量测试")
     local -a test_hints=("Check.Place -N" "Check.Place -H" "NodeQuality" "Ookla · 本地" "nws.sh" "TcpQuality")
     local -a tool_numbers=("7" "8" "9" "10" "11")
-    local -a tool_labels=("BBR 网络优化" "VPS节点搭建" "流量狗脚本" "NFT 转发脚本" "CPA软件安装")
-    local -a tool_hints=("vps-tcp-tune" "singbox-lite · 本地" "port-traffic-dog · 本地" "nft-forward · 本地" "kejilion.sh · CLIProxyAPI")
+    local -a tool_labels=("VPS TCP 综合调优" "VPS节点搭建" "流量狗脚本" "NFT 转发脚本" "CPA软件安装")
+    local -a tool_hints=("LTOOLS 本地核心 · 分类" "singbox-lite · 本地" "port-traffic-dog · 本地" "nft-forward · 本地" "kejilion.sh · CLIProxyAPI")
     local -a all_numbers=("${test_numbers[@]}" "${tool_numbers[@]}" "0")
     local -a all_labels=("${test_labels[@]}" "${tool_labels[@]}" "退出")
 
@@ -829,8 +888,7 @@ main() {
                 pause_menu
                 ;;
             7)
-                run_bbr_tool || true
-                pause_menu
+                run_local_tune_toolbox || true
                 ;;
             8)
                 run_vps_node_builder || true
