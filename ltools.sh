@@ -3,7 +3,7 @@
 set -Eeuo pipefail
 IFS=$'\n\t'
 
-readonly LTOOLS_VERSION="2.4.1"
+readonly LTOOLS_VERSION="2.5.0"
 readonly CHECK_PLACE_URL="https://check.place"
 readonly NODEQUALITY_URL="https://run.NodeQuality.com"
 readonly NWS_URL="https://nws.sh"
@@ -16,6 +16,7 @@ readonly DOG_INSTALL_PATH="${LTOOLS_DOG_INSTALL_PATH:-/usr/local/bin/port-traffi
 readonly NFT_SOURCE_URL="https://raw.githubusercontent.com/LYISTR2/nft-forward/main/nft-forward.sh"
 readonly NFT_INSTALL_PATH="${LTOOLS_NFT_INSTALL_PATH:-/usr/local/bin/nft-forward}"
 readonly CPA_SOURCE_URL="https://kejilion.sh"
+readonly TG_NS_BOT_SOURCE_URL="https://raw.githubusercontent.com/LYISTR2/NS-Mirror/main/install.sh"
 readonly BBR_REF="${LTOOLS_BBR_REF:-main}"
 readonly BBR_SOURCE_URL="https://raw.githubusercontent.com/Eric86777/vps-tcp-tune/${BBR_REF}/net-tcp-tune.sh"
 
@@ -480,6 +481,24 @@ run_cpa_install() {
     esac
 }
 
+run_tg_ns_bot() {
+    local answer=""
+
+    printf '\n%b\n' "${WHITE}TG-NS关键词Bot${RESET}"
+    warn "此安装器将以 root 权限部署 NS-Mirror，并可能安装依赖、创建服务和写入配置。"
+    printf '%b' "${CYAN}继续安装 TG-NS关键词Bot？${RESET} [y/N] "
+    IFS= read -r answer || return 1
+
+    case "${answer}" in
+        y|Y|yes|YES|Yes)
+            run_remote_script "TG-NS关键词Bot" "${TG_NS_BOT_SOURCE_URL}?_=$(date +%s)" "yes"
+            ;;
+        *)
+            info "已取消 TG-NS关键词Bot 安装。"
+            ;;
+    esac
+}
+
 run_bbr_tool() {
     local answer=""
 
@@ -645,9 +664,9 @@ build_menu_lines() {
     local -a test_numbers=("1" "2" "3" "4" "5" "6")
     local -a test_labels=("网络质量体检" "硬件质量体检" "VPS 综合质量体检" "Speedtest测速" "国际测速" "TCP质量测试")
     local -a test_hints=("Check.Place -N" "Check.Place -H" "NodeQuality" "Ookla · 本地" "nws.sh" "TcpQuality")
-    local -a tool_numbers=("7" "8" "9" "10" "11")
-    local -a tool_labels=("BBR 网络优化" "VPS节点搭建" "流量狗脚本" "NFT 转发脚本" "CPA软件安装")
-    local -a tool_hints=("Eric86777/vps-tcp-tune · 远程" "singbox-lite · 本地" "port-traffic-dog · 本地" "nft-forward · 本地" "kejilion.sh · CLIProxyAPI")
+    local -a tool_numbers=("7" "8" "9" "10" "11" "12")
+    local -a tool_labels=("BBR 网络优化" "VPS节点搭建" "流量狗脚本" "NFT 转发脚本" "CPA软件安装" "TG-NS关键词Bot")
+    local -a tool_hints=("Eric86777/vps-tcp-tune · 远程" "singbox-lite · 本地" "port-traffic-dog · 本地" "nft-forward · 本地" "kejilion.sh · CLIProxyAPI" "NS-Mirror · 安装")
     local -a all_numbers=("${test_numbers[@]}" "${tool_numbers[@]}" "0")
     local -a all_labels=("${test_labels[@]}" "${tool_labels[@]}" "退出")
 
@@ -793,7 +812,7 @@ main() {
 
     while true; do
         show_menu
-        printf '请选择 [0-11]: '
+        printf '请选择 [0-12]: '
         if ! IFS= read -r choice; then
             printf '\n'
             return 0
@@ -844,12 +863,16 @@ main() {
                 run_cpa_install || true
                 pause_menu
                 ;;
+            12)
+                run_tg_ns_bot || true
+                pause_menu
+                ;;
             0|q|Q)
                 printf '\n%b\n' "${DIM}已退出 LTOOLS。${RESET}"
                 return 0
                 ;;
             *)
-                warn "无效选项，请输入 0 到 11。"
+                warn "无效选项，请输入 0 到 12。"
                 pause_menu
                 ;;
         esac
