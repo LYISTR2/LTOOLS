@@ -3,7 +3,7 @@
 set -Eeuo pipefail
 IFS=$'\n\t'
 
-readonly LTOOLS_VERSION="2.7.0"
+readonly LTOOLS_VERSION="2.8.0"
 readonly CHECK_PLACE_URL="https://check.place"
 readonly NODEQUALITY_URL="https://run.NodeQuality.com"
 readonly NWS_URL="https://nws.sh"
@@ -18,6 +18,7 @@ readonly NFT_INSTALL_PATH="${LTOOLS_NFT_INSTALL_PATH:-/usr/local/bin/nft-forward
 readonly CPA_SOURCE_URL="https://kejilion.sh"
 readonly TG_NS_BOT_SOURCE_URL="https://raw.githubusercontent.com/LYISTR2/NS-Mirror/main/install.sh"
 readonly V2RAY_AGENT_SOURCE_URL="https://raw.githubusercontent.com/mack-a/v2ray-agent/master/install.sh"
+readonly TEMP_SSH_SOURCE_URL="https://raw.githubusercontent.com/LYISTR2/temp-ssh-tool/main/bootstrap.sh"
 readonly BBR_REF="${LTOOLS_BBR_REF:-main}"
 readonly BBR_SOURCE_URL="https://raw.githubusercontent.com/Eric86777/vps-tcp-tune/${BBR_REF}/net-tcp-tune.sh"
 
@@ -518,6 +519,24 @@ run_v2ray_agent() {
     esac
 }
 
+run_temp_ssh() {
+    local answer=""
+
+    printf '\n%b\n' "${WHITE}新建临时SSH${RESET}"
+    warn "此工具会创建限时 SSH 账号，并可能配置 PAM、systemd 与 OpenSSH 相关规则。"
+    printf '%b' "${CYAN}继续运行临时 SSH 账号管理安装器？${RESET} [y/N] "
+    IFS= read -r answer || return 1
+
+    case "${answer}" in
+        y|Y|yes|YES|Yes)
+            run_remote_script "新建临时SSH" "${TEMP_SSH_SOURCE_URL}?_=$(date +%s)" "yes"
+            ;;
+        *)
+            info "已取消新建临时SSH。"
+            ;;
+    esac
+}
+
 run_bbr_tool() {
     local answer=""
 
@@ -683,9 +702,9 @@ build_menu_lines() {
     local -a test_numbers=("1" "2" "3" "4" "5" "6")
     local -a test_labels=("网络质量体检" "硬件质量体检" "VPS 综合质量体检" "Speedtest测速" "国际测速" "TCP质量测试")
     local -a test_hints=("Check.Place -N" "Check.Place -H" "NodeQuality" "Ookla · 本地" "nws.sh" "TcpQuality")
-    local -a tool_numbers=("7" "8" "9" "10" "11" "12" "13")
-    local -a tool_labels=("BBR 网络优化" "VPS节点搭建" "流量狗脚本" "NFT 转发脚本" "CPA软件安装" "TG-NS关键词Bot" "V2Ray-Agent 8合1")
-    local -a tool_hints=("Eric86777/vps-tcp-tune · 远程" "singbox-lite · 本地" "port-traffic-dog · 本地" "nft-forward · 本地" "kejilion.sh · CLIProxyAPI" "NS-Mirror · 安装" "mack-a/v2ray-agent · 远程")
+    local -a tool_numbers=("7" "8" "9" "10" "11" "12" "13" "14")
+    local -a tool_labels=("BBR 网络优化" "VPS节点搭建" "流量狗脚本" "NFT 转发脚本" "CPA软件安装" "TG-NS关键词Bot" "V2Ray-Agent 8合1" "新建临时SSH")
+    local -a tool_hints=("Eric86777/vps-tcp-tune · 远程" "singbox-lite · 本地" "port-traffic-dog · 本地" "nft-forward · 本地" "kejilion.sh · CLIProxyAPI" "NS-Mirror · 安装" "mack-a/v2ray-agent · 远程" "temp-ssh-tool · 安装")
     local -a all_numbers=("${test_numbers[@]}" "${tool_numbers[@]}" "0")
     local -a all_labels=("${test_labels[@]}" "${tool_labels[@]}" "退出")
 
@@ -831,7 +850,7 @@ main() {
 
     while true; do
         show_menu
-        printf '请选择 [0-13]: '
+        printf '请选择 [0-14]: '
         if ! IFS= read -r choice; then
             printf '\n'
             return 0
@@ -890,12 +909,16 @@ main() {
                 run_v2ray_agent || true
                 pause_menu
                 ;;
+            14)
+                run_temp_ssh || true
+                pause_menu
+                ;;
             0|q|Q)
                 printf '\n%b\n' "${DIM}已退出 LTOOLS。${RESET}"
                 return 0
                 ;;
             *)
-                warn "无效选项，请输入 0 到 13。"
+                warn "无效选项，请输入 0 到 14。"
                 pause_menu
                 ;;
         esac
