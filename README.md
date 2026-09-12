@@ -24,6 +24,9 @@
 | 9 | 流量狗脚本 | 本地安装的 `/usr/local/bin/port-traffic-dog.sh` |
 | 10 | NFT 转发脚本 | 本地安装的 `/usr/local/bin/nft-forward` |
 | 11 | CPA软件安装 | `kejilion.sh app CLIProxyAPI` |
+| 12 | TG-NS关键词Bot | `LYISTR2/NS-Mirror` 安装器 |
+| 13 | V2Ray-Agent 8合1 | `mack-a/v2ray-agent` 安装器 |
+| 14 | 新建临时SSH | `LYISTR2/temp-ssh-tool` 安装器 |
 | 0 | 退出 | — |
 
 脚本会自动检查 `curl` 和 `wget`。Debian 系统缺少依赖时，会通过 `apt-get` 安装 `ca-certificates`、`curl` 和 `wget`。每项任务结束后，按任意键即可回到主菜单。
@@ -105,6 +108,10 @@ bash kejilion.sh app CLIProxyAPI
 ```
 
 安装器会通过 Docker 部署 CLIProxyAPI，应用目录默认为 `/home/docker/CLIProxyAPI`，默认服务端口为 `8317`。安装过程中会要求设置管理密钥，请妥善保存，不要提交到 GitHub。
+
+#### 新建临时SSH
+
+菜单 `14` 会下载并检查 `LYISTR2/temp-ssh-tool` 的 `bootstrap.sh`，确认后以 root/sudo 运行。它用于创建有明确到期时间的临时 SSH 账号；安装器会继续下载所需组件，并可能配置 PAM、systemd 与 OpenSSH 相关规则。运行前请确认自己仍保留可用的管理员登录方式，建议先创建 VPS 快照。
 
 ## 公开仓库一键调用
 
@@ -243,3 +250,4 @@ LTOOLS 会在运行时下载第三方脚本。下载过程强制 HTTPS，拒绝�
 - [kejilion/apps](https://github.com/kejilion/apps)
 - [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI)
 - [Eric86777/vps-tcp-tune](https://github.com/Eric86777/vps-tcp-tune)
+- [LYISTR2/temp-ssh-tool](https://github.com/LYISTR2/temp-ssh-tool)
