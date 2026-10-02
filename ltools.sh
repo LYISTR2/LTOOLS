@@ -3,7 +3,7 @@
 set -Eeuo pipefail
 IFS=$'\n\t'
 
-readonly LTOOLS_VERSION="2.8.0"
+readonly LTOOLS_VERSION="2.9.0"
 readonly CHECK_PLACE_URL="https://check.place"
 readonly NODEQUALITY_URL="https://run.NodeQuality.com"
 readonly NWS_URL="https://nws.sh"
@@ -19,6 +19,7 @@ readonly CPA_SOURCE_URL="https://kejilion.sh"
 readonly TG_NS_BOT_SOURCE_URL="https://raw.githubusercontent.com/LYISTR2/NS-Mirror/main/install.sh"
 readonly V2RAY_AGENT_SOURCE_URL="https://raw.githubusercontent.com/mack-a/v2ray-agent/master/install.sh"
 readonly TEMP_SSH_SOURCE_URL="https://raw.githubusercontent.com/LYISTR2/temp-ssh-tool/main/bootstrap.sh"
+readonly TRAFFIC_BURNER_SOURCE_URL="https://raw.githubusercontent.com/LYISTR2/traffic-burner/main/install.sh"
 readonly BBR_REF="${LTOOLS_BBR_REF:-main}"
 readonly BBR_SOURCE_URL="https://raw.githubusercontent.com/Eric86777/vps-tcp-tune/${BBR_REF}/net-tcp-tune.sh"
 
@@ -187,6 +188,7 @@ download_script() {
 
 verify_script() {
     local script_file="$1"
+    local interpreter="${2:-bash}"
     local checksum=""
 
     [[ -s "${script_file}" ]] || {
@@ -199,8 +201,8 @@ verify_script() {
         return 1
     fi
 
-    if ! bash -n "${script_file}"; then
-        error "远程脚本未通过 Bash 语法检查，已拒绝执行。"
+    if ! "${interpreter}" -n "${script_file}"; then
+        error "远程脚本未通过 ${interpreter} 语法检查，已拒绝执行。"
         return 1
     fi
 
@@ -211,6 +213,12 @@ verify_script() {
 }
 
 run_remote_script() {
+    run_remote_script_with_shell bash "$@"
+}
+
+run_remote_script_with_shell() {
+    local interpreter="$1"
+    shift
     local title="$1"
     local url="$2"
     local needs_root="$3"
@@ -235,7 +243,7 @@ run_remote_script() {
         return 1
     fi
 
-    if ! verify_script "${script_file}"; then
+    if ! verify_script "${script_file}" "${interpreter}"; then
         rm -f "${script_file}"
         ACTIVE_TEMP_FILE=""
         return 1
@@ -244,12 +252,12 @@ run_remote_script() {
     chmod 700 "${script_file}"
 
     if [[ "${needs_root}" == "yes" ]]; then
-        if run_as_root bash "${script_file}" "$@"; then
+        if run_as_root "${interpreter}" "${script_file}" "$@"; then
             exit_code=0
         else
             exit_code=$?
         fi
-    elif bash "${script_file}" "$@"; then
+    elif "${interpreter}" "${script_file}" "$@"; then
         exit_code=0
     else
         exit_code=$?
@@ -466,98 +474,32 @@ run_nft_forward() {
 }
 
 run_cpa_install() {
-    local answer=""
-
-    printf '\n%b\n' "${WHITE}CPA软件安装${RESET}"
-    warn "此操作将通过 Docker 部署 CLIProxyAPI，并修改 /home/docker 下的应用文件。"
-    printf '%b' "${CYAN}继续运行 kejilion 应用安装器？${RESET} [y/N] "
-    IFS= read -r answer || return 1
-
-    case "${answer}" in
-        y|Y|yes|YES|Yes)
-            run_remote_script "CPA软件安装" "${CPA_SOURCE_URL}" "yes" app CLIProxyAPI
-            ;;
-        *)
-            info "已取消 CPA软件安装。"
-            ;;
-    esac
+    run_remote_script "CPA软件安装" "${CPA_SOURCE_URL}" "yes" app CLIProxyAPI
 }
 
 run_tg_ns_bot() {
-    local answer=""
-
-    printf '\n%b\n' "${WHITE}TG-NS关键词Bot${RESET}"
-    warn "此安装器将以 root 权限部署 NS-Mirror，并可能安装依赖、创建服务和写入配置。"
-    printf '%b' "${CYAN}继续安装 TG-NS关键词Bot？${RESET} [y/N] "
-    IFS= read -r answer || return 1
-
-    case "${answer}" in
-        y|Y|yes|YES|Yes)
-            run_remote_script "TG-NS关键词Bot" "${TG_NS_BOT_SOURCE_URL}?_=$(date +%s)" "yes"
-            ;;
-        *)
-            info "已取消 TG-NS关键词Bot 安装。"
-            ;;
-    esac
+    run_remote_script "TG-NS关键词Bot" "${TG_NS_BOT_SOURCE_URL}?_=$(date +%s)" "yes"
 }
 
 run_v2ray_agent() {
-    local answer=""
-
-    printf '\n%b\n' "${WHITE}V2Ray-Agent 8合1${RESET}"
-    warn "此安装器可能安装或修改 Xray、sing-box、nginx、证书与防火墙配置。"
-    printf '%b' "${CYAN}继续运行 V2Ray-Agent 8合1 安装器？${RESET} [y/N] "
-    IFS= read -r answer || return 1
-
-    case "${answer}" in
-        y|Y|yes|YES|Yes)
-            run_remote_script "V2Ray-Agent 8合1" "${V2RAY_AGENT_SOURCE_URL}?_=$(date +%s)" "yes"
-            ;;
-        *)
-            info "已取消 V2Ray-Agent 8合1 安装。"
-            ;;
-    esac
+    run_remote_script "V2Ray-Agent 8合1" "${V2RAY_AGENT_SOURCE_URL}?_=$(date +%s)" "yes"
 }
 
 run_temp_ssh() {
-    local answer=""
+    run_remote_script "新建临时SSH" "${TEMP_SSH_SOURCE_URL}?_=$(date +%s)" "yes"
+}
 
-    printf '\n%b\n' "${WHITE}新建临时SSH${RESET}"
-    warn "此工具会创建限时 SSH 账号，并可能配置 PAM、systemd 与 OpenSSH 相关规则。"
-    printf '%b' "${CYAN}继续运行临时 SSH 账号管理安装器？${RESET} [y/N] "
-    IFS= read -r answer || return 1
-
-    case "${answer}" in
-        y|Y|yes|YES|Yes)
-            run_remote_script "新建临时SSH" "${TEMP_SSH_SOURCE_URL}?_=$(date +%s)" "yes"
-            ;;
-        *)
-            info "已取消新建临时SSH。"
-            ;;
-    esac
+run_traffic_burner() {
+    run_remote_script_with_shell sh "流量消耗工具" "${TRAFFIC_BURNER_SOURCE_URL}?_=$(date +%s)" "yes"
 }
 
 run_bbr_tool() {
-    local answer=""
-
     if [[ ! "${BBR_REF}" =~ ^[A-Za-z0-9._/-]+$ ]]; then
         error "LTOOLS_BBR_REF 含有非法字符。"
         return 1
     fi
 
-    printf '\n%b\n' "${WHITE}BBR 网络优化${RESET}"
-    warn "此工具来自 Eric86777/vps-tcp-tune，可能更换内核、修改网络参数并要求重启 VPS。"
-    printf '%b' "${CYAN}继续运行远程 GitHub 脚本？${RESET} [y/N] "
-    IFS= read -r answer || return 1
-
-    case "${answer}" in
-        y|Y|yes|YES|Yes)
-            run_remote_script "BBR 网络优化" "${BBR_SOURCE_URL}?_=$(date +%s)" "yes"
-            ;;
-        *)
-            info "已取消 BBR 网络优化。"
-            ;;
-    esac
+    run_remote_script "BBR 网络优化" "${BBR_SOURCE_URL}?_=$(date +%s)" "yes"
 }
 
 pause_menu() {
@@ -702,9 +644,9 @@ build_menu_lines() {
     local -a test_numbers=("1" "2" "3" "4" "5" "6")
     local -a test_labels=("网络质量体检" "硬件质量体检" "VPS 综合质量体检" "Speedtest测速" "国际测速" "TCP质量测试")
     local -a test_hints=("Check.Place -N" "Check.Place -H" "NodeQuality" "Ookla · 本地" "nws.sh" "TcpQuality")
-    local -a tool_numbers=("7" "8" "9" "10" "11" "12" "13" "14")
-    local -a tool_labels=("BBR 网络优化" "VPS节点搭建" "流量狗脚本" "NFT 转发脚本" "CPA软件安装" "TG-NS关键词Bot" "V2Ray-Agent 8合1" "新建临时SSH")
-    local -a tool_hints=("Eric86777/vps-tcp-tune · 远程" "singbox-lite · 本地" "port-traffic-dog · 本地" "nft-forward · 本地" "kejilion.sh · CLIProxyAPI" "NS-Mirror · 安装" "mack-a/v2ray-agent · 远程" "temp-ssh-tool · 安装")
+    local -a tool_numbers=("7" "8" "9" "10" "11" "12" "13" "14" "15")
+    local -a tool_labels=("BBR 网络优化" "VPS节点搭建" "流量狗脚本" "NFT 转发脚本" "CPA软件安装" "TG-NS关键词Bot" "V2Ray-Agent 8合1" "新建临时SSH" "流量消耗工具")
+    local -a tool_hints=("Eric86777/vps-tcp-tune · 远程" "singbox-lite · 本地" "port-traffic-dog · 本地" "nft-forward · 本地" "kejilion.sh · CLIProxyAPI" "NS-Mirror · 安装" "mack-a/v2ray-agent · 远程" "temp-ssh-tool · 安装" "traffic-burner · 安装")
     local -a all_numbers=("${test_numbers[@]}" "${tool_numbers[@]}" "0")
     local -a all_labels=("${test_labels[@]}" "${tool_labels[@]}" "退出")
 
@@ -850,7 +792,7 @@ main() {
 
     while true; do
         show_menu
-        printf '请选择 [0-14]: '
+        printf '请选择 [0-15]: '
         if ! IFS= read -r choice; then
             printf '\n'
             return 0
@@ -913,12 +855,16 @@ main() {
                 run_temp_ssh || true
                 pause_menu
                 ;;
+            15)
+                run_traffic_burner || true
+                pause_menu
+                ;;
             0|q|Q)
                 printf '\n%b\n' "${DIM}已退出 LTOOLS。${RESET}"
                 return 0
                 ;;
             *)
-                warn "无效选项，请输入 0 到 14。"
+                warn "无效选项，请输入 0 到 15。"
                 pause_menu
                 ;;
         esac
