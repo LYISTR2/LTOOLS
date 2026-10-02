@@ -27,9 +27,10 @@
 | 12 | TG-NS关键词Bot | `LYISTR2/NS-Mirror` 安装器 |
 | 13 | V2Ray-Agent 8合1 | `mack-a/v2ray-agent` 安装器 |
 | 14 | 新建临时SSH | `LYISTR2/temp-ssh-tool` 安装器 |
+| 15 | 流量消耗工具 | `LYISTR2/traffic-burner` 的 `install.sh`（使用 `sh`） |
 | 0 | 退出 | — |
 
-脚本会自动检查 `curl` 和 `wget`。Debian 系统缺少依赖时，会通过 `apt-get` 安装 `ca-certificates`、`curl` 和 `wget`。每项任务结束后，按任意键即可回到主菜单。
+脚本会自动检查 `curl` 和 `wget`。Debian 系统缺少依赖时，会通过 `apt-get` 安装 `ca-certificates`、`curl` 和 `wget`。选择菜单编号后直接运行，LTOOLS 不再要求二次输入确认；上游工具自身的参数输入与操作提示仍由其处理。每项任务结束后，按任意键即可回到主菜单。
 
 NodeQuality 和国际测速可能消耗较多流量，流量额度较小的 VPS 请谨慎运行。TCP质量测试需要原始套接字权限，LTOOLS 会通过 root 或 sudo 执行。
 
@@ -53,7 +54,7 @@ sudo ./ltools.sh
 sudo bash ltools.sh
 ```
 
-BBR 工具会修改内核或网络参数，运行前有独立确认步骤。首次安装新内核后，请按照上游脚本提示决定是否重启，不要在没有 VPS 控制台或快照的情况下盲目操作。
+选择菜单 `7` 后直接运行 BBR 工具，它会修改内核或网络参数。首次安装新内核后，请按照上游脚本提示决定是否重启，不要在没有 VPS 控制台或快照的情况下盲目操作。
 
 ### 本地安装工具
 
@@ -101,7 +102,7 @@ sudo sb
 
 #### CPA软件安装
 
-菜单 `11` 会安全下载并检查 `kejilion.sh`，确认后以 root/sudo 执行：
+菜单 `11` 会安全下载并检查 `kejilion.sh`，直接以 root/sudo 执行：
 
 ```bash
 bash kejilion.sh app CLIProxyAPI
@@ -111,7 +112,17 @@ bash kejilion.sh app CLIProxyAPI
 
 #### 新建临时SSH
 
-菜单 `14` 会下载并检查 `LYISTR2/temp-ssh-tool` 的 `bootstrap.sh`，确认后以 root/sudo 运行。它用于创建有明确到期时间的临时 SSH 账号；安装器会继续下载所需组件，并可能配置 PAM、systemd 与 OpenSSH 相关规则。运行前请确认自己仍保留可用的管理员登录方式，建议先创建 VPS 快照。
+菜单 `14` 会下载并检查 `LYISTR2/temp-ssh-tool` 的 `bootstrap.sh`，直接以 root/sudo 运行。它用于创建有明确到期时间的临时 SSH 账号；安装器会继续下载所需组件，并可能配置 PAM、systemd 与 OpenSSH 相关规则。运行前请确认自己仍保留可用的管理员登录方式，建议先创建 VPS 快照。
+
+#### 流量消耗工具
+
+菜单 `15` 会下载并检查 `LYISTR2/traffic-burner` 的 `install.sh`，使用 `sh -n` 检查语法后，直接以 root/sudo 执行 `sh` 安装器。上游会安装 `tb` 交互菜单和 `traffic-burner` 命令，交互终端下安装完成后自动进入菜单。以后也可以直接运行 `tb`。
+
+对应的上游安装命令：
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/LYISTR2/traffic-burner/main/install.sh | sh
+```
 
 ## 公开仓库一键调用
 
@@ -235,7 +246,7 @@ sudo LTOOLS_BBR_REF='<commit-sha>' bash ltools.sh
 
 ## 安全说明
 
-LTOOLS 会在运行时下载第三方脚本。下载过程强制 HTTPS，拒绝空文件和常见 HTML 错误页，执行前运行 `bash -n` 并显示 SHA-256；这些措施能发现传输与格式异常，但不能证明第三方代码本身可信。重要 VPS 应先创建快照，并在执行前审阅上游变更或固定提交 SHA。
+LTOOLS 会在运行时下载第三方脚本。下载过程强制 HTTPS，拒绝空文件和常见 HTML 错误页，执行前运行 `bash -n`（traffic-burner 安装器使用 `sh -n`）并显示 SHA-256；这些措施能发现传输与格式异常，但不能证明第三方代码本身可信。重要 VPS 应先创建快照，并在执行前审阅上游变更或固定提交 SHA。
 
 上游项目：
 
@@ -251,3 +262,4 @@ LTOOLS 会在运行时下载第三方脚本。下载过程强制 HTTPS，拒绝�
 - [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI)
 - [Eric86777/vps-tcp-tune](https://github.com/Eric86777/vps-tcp-tune)
 - [LYISTR2/temp-ssh-tool](https://github.com/LYISTR2/temp-ssh-tool)
+- [LYISTR2/traffic-burner](https://github.com/LYISTR2/traffic-burner)
