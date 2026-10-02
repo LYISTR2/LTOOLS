@@ -3,7 +3,7 @@
 set -Eeuo pipefail
 IFS=$'\n\t'
 
-readonly LTOOLS_VERSION="2.9.0"
+readonly LTOOLS_VERSION="2.9.1"
 readonly CHECK_PLACE_URL="https://check.place"
 readonly NODEQUALITY_URL="https://run.NodeQuality.com"
 readonly NWS_URL="https://nws.sh"
@@ -17,7 +17,6 @@ readonly NFT_SOURCE_URL="https://raw.githubusercontent.com/LYISTR2/nft-forward/m
 readonly NFT_INSTALL_PATH="${LTOOLS_NFT_INSTALL_PATH:-/usr/local/bin/nft-forward}"
 readonly CPA_SOURCE_URL="https://kejilion.sh"
 readonly TG_NS_BOT_SOURCE_URL="https://raw.githubusercontent.com/LYISTR2/NS-Mirror/main/install.sh"
-readonly V2RAY_AGENT_SOURCE_URL="https://raw.githubusercontent.com/mack-a/v2ray-agent/master/install.sh"
 readonly TEMP_SSH_SOURCE_URL="https://raw.githubusercontent.com/LYISTR2/temp-ssh-tool/main/bootstrap.sh"
 readonly TRAFFIC_BURNER_SOURCE_URL="https://raw.githubusercontent.com/LYISTR2/traffic-burner/main/install.sh"
 readonly BBR_REF="${LTOOLS_BBR_REF:-main}"
@@ -481,10 +480,6 @@ run_tg_ns_bot() {
     run_remote_script "TG-NS关键词Bot" "${TG_NS_BOT_SOURCE_URL}?_=$(date +%s)" "yes"
 }
 
-run_v2ray_agent() {
-    run_remote_script "V2Ray-Agent 8合1" "${V2RAY_AGENT_SOURCE_URL}?_=$(date +%s)" "yes"
-}
-
 run_temp_ssh() {
     run_remote_script "新建临时SSH" "${TEMP_SSH_SOURCE_URL}?_=$(date +%s)" "yes"
 }
@@ -644,9 +639,9 @@ build_menu_lines() {
     local -a test_numbers=("1" "2" "3" "4" "5" "6")
     local -a test_labels=("网络质量体检" "硬件质量体检" "VPS 综合质量体检" "Speedtest测速" "国际测速" "TCP质量测试")
     local -a test_hints=("Check.Place -N" "Check.Place -H" "NodeQuality" "Ookla · 本地" "nws.sh" "TcpQuality")
-    local -a tool_numbers=("7" "8" "9" "10" "11" "12" "13" "14" "15")
-    local -a tool_labels=("BBR 网络优化" "VPS节点搭建" "流量狗脚本" "NFT 转发脚本" "CPA软件安装" "TG-NS关键词Bot" "V2Ray-Agent 8合1" "新建临时SSH" "流量消耗工具")
-    local -a tool_hints=("Eric86777/vps-tcp-tune · 远程" "singbox-lite · 本地" "port-traffic-dog · 本地" "nft-forward · 本地" "kejilion.sh · CLIProxyAPI" "NS-Mirror · 安装" "mack-a/v2ray-agent · 远程" "temp-ssh-tool · 安装" "traffic-burner · 安装")
+    local -a tool_numbers=("7" "8" "9" "10" "11" "12" "14" "15")
+    local -a tool_labels=("BBR 网络优化" "VPS节点搭建" "流量狗脚本" "NFT 转发脚本" "CPA软件安装" "TG-NS关键词Bot" "新建临时SSH" "流量消耗工具")
+    local -a tool_hints=("Eric86777/vps-tcp-tune · 远程" "singbox-lite · 本地" "port-traffic-dog · 本地" "nft-forward · 本地" "kejilion.sh · CLIProxyAPI" "NS-Mirror · 安装" "temp-ssh-tool · 安装" "traffic-burner · 安装")
     local -a all_numbers=("${test_numbers[@]}" "${tool_numbers[@]}" "0")
     local -a all_labels=("${test_labels[@]}" "${tool_labels[@]}" "退出")
 
@@ -792,7 +787,7 @@ main() {
 
     while true; do
         show_menu
-        printf '请选择 [0-15]: '
+        printf '请选择 [0-12,14-15]: '
         if ! IFS= read -r choice; then
             printf '\n'
             return 0
@@ -847,10 +842,6 @@ main() {
                 run_tg_ns_bot || true
                 pause_menu
                 ;;
-            13)
-                run_v2ray_agent || true
-                pause_menu
-                ;;
             14)
                 run_temp_ssh || true
                 pause_menu
@@ -864,7 +855,7 @@ main() {
                 return 0
                 ;;
             *)
-                warn "无效选项，请输入 0 到 15。"
+                warn "无效选项，请输入 0 到 12、14 或 15。"
                 pause_menu
                 ;;
         esac
