@@ -25,7 +25,6 @@
 | 10 | NFT 转发脚本 | 本地安装的 `/usr/local/bin/nft-forward` |
 | 11 | CPA软件安装 | `kejilion.sh app CLIProxyAPI` |
 | 12 | TG-NS关键词Bot | `LYISTR2/NS-Mirror` 安装器 |
-| 13 | V2Ray-Agent 8合1 | `mack-a/v2ray-agent` 安装器 |
 | 14 | 新建临时SSH | `LYISTR2/temp-ssh-tool` 安装器 |
 | 15 | 流量消耗工具 | `LYISTR2/traffic-burner` 的 `install.sh`（使用 `sh`） |
 | 0 | 退出 | — |
