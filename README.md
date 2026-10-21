@@ -1,290 +1,46 @@
 # LTOOLS
 
-一套面向 Debian VPS 的极简交互式测试与网络优化工具箱。
+面向 Debian VPS 的交互式工具箱，集成网络检测、节点管理、端口转发和 SSH 管理。
+
+## 运行 / 更新
+
+需要 `bash`、`curl`；系统管理功能需要 root 或 sudo 权限。在可写目录执行，重复运行即可获取最新版：
+
+```bash
+curl -fsSLO https://raw.githubusercontent.com/LYISTR2/LTOOLS/main/ltools.sh && bash ltools.sh
+```
+
+已下载后直接运行：
+
+```bash
+bash ltools.sh
+```
 
 ## 功能
 
-### 测试类
+- **检测（1–6）**：网络质量、硬件性能、VPS 综合评测、Ookla 带宽测速、国际网络测速、TCP 连接质量。
+- **网络管理（7–10）**：BBR 与网络优化、代理节点管理、端口流量与限额管理、nftables 端口转发。
+- **应用（11–12）**：CLIProxyAPI 安装、Telegram 关键词机器人。
+- **SSH（13–14）**：密码与公钥登录管理、端口修改、公钥维护、临时 SSH 账号。
+- **流量（15）**：定量或定时上传 / 下载。
 
-| 选项 | 功能 | 上游入口 |
-| ---: | --- | --- |
-| 1 | 网络质量体检 | `https://check.place`，参数 `-N` |
-| 2 | 硬件质量体检 | `https://check.place`，参数 `-H` |
-| 3 | VPS 综合质量体检 | `https://run.NodeQuality.com` |
-| 4 | Speedtest测速 | Ookla 官方 `speedtest` 命令 |
-| 5 | 国际测速 | `https://nws.sh` |
-| 6 | TCP质量测试 | `https://tcpquality.ibsgss.uk/run` |
+输入编号执行，`0` 或 `q` 退出。输错可直接重试；检测结束后回车返回，也可输入下一项编号。
 
-### 实用类工具
+## 工具来源与更新
 
-| 选项 | 功能 | 上游入口 |
-| ---: | --- | --- |
-| 7 | BBR 网络优化 | `Eric86777/vps-tcp-tune` 的 `net-tcp-tune.sh` |
-| 8 | 代理节点管理 | 每次从 `0xdabiaoge/singbox-lite` 下载 |
-| 9 | 端口流量与限额管理 | 每次从 `zywe03/realm-xwPF` 下载 |
-| 10 | NFT 转发脚本 | 本地安装的 `/usr/local/bin/nft-forward` |
-| 11 | CPA软件安装 | `kejilion.sh app CLIProxyAPI` |
-| 12 | TG-NS关键词Bot | `LYISTR2/NS-Mirror` 安装器 |
-| 13 | SSH 登录管理 | 本仓库 `ssh-manager/ssh-manager.sh`（使用 `sh`） |
-| 14 | 新建临时SSH | `LYISTR2/temp-ssh-tool` 安装器 |
-| 15 | 流量消耗工具 | 本仓库 `traffic-burner/install.sh`（使用 `sh`） |
-| 0 | 退出 | — |
+- BBR 使用 [Eric86777/vps-tcp-tune](https://github.com/Eric86777/vps-tcp-tune)。
+- 节点管理和端口流量管理每次从 [singbox-lite](https://github.com/0xdabiaoge/singbox-lite)、[realm-xwPF](https://github.com/zywe03/realm-xwPF) 下载，失败不运行旧版；为兼容上游定时任务，保留稳定安装路径。
+- 自有工具：[NFT 转发](nft-forward/README.md)、[SSH 管理](ssh-manager/README.md)、[流量工具](traffic-burner/README.md)。SSH 菜单每次获取最新版；重新选择菜单 `15` 更新流量工具；NFT 首次安装后使用本地版本，可在工具内更新。
 
-脚本会自动检查 `curl` 和 `wget`。Debian 缺少依赖时会通过 `apt-get` 安装。选择编号直接运行；第三方工具自身的安全确认仍予保留。
-
-### 输入与返回
-
-- 主菜单接受前后空格、前导零（如 `013`）与大小写退出命令 `q/quit/exit`；空输入刷新，输入结束直接退出。
-- 输错编号就在当前提示重试，不再要求额外按键；只接受单个编号，不执行输入的命令。
-- 检测完成或工具失败后保留输出：回车返回，也可直接输入下一项编号。交互管理工具正常退出后直接返回主菜单。
-- 流量菜单的 100 MB / 1000 MB 预设选中即启动；不限量定时任务和自定义任务保留一次确认，默认取消。自定义数字去除前导零，模式输入错误时重试，输入结束不再套用默认值继续运行。
-- SSH 的安全确认支持去除首尾空格，非法回答重试，输入结束视为取消。
-
-功能名称改为用途导向（编号不变）：`8 代理节点管理`、`9 端口流量与限额管理`、`10 端口转发（nftables）`、`11 CLIProxyAPI 安装`、`12 Telegram 关键词机器人`、`13 SSH 登录与公钥管理`、`14 临时 SSH 账号`、`15 流量消耗（上传/下载）`。
-
-NodeQuality 和国际测速可能消耗较多流量，流量额度较小的 VPS 请谨慎运行。TCP质量测试需要原始套接字权限，LTOOLS 会通过 root 或 sudo 执行。
-
-## 终端界面
-
-- 宽终端使用 Unicode 边框包裹菜单，边框宽度会根据标题、系统名称、标签和命令提示动态计算。
-- 选项编号右对齐，中文标签按照终端显示宽度对齐；CJK 字符按 2 个单元格计算，组合字符按 0 个单元格计算。
-- 终端宽度不足、输出被重定向或当前环境不支持 UTF-8 时，自动切换为无边框纯文本布局。
-- 输入提示始终位于菜单外部，避免重绘边框时影响光标位置。
-
-## 直接运行
-
-```bash
-chmod +x ltools.sh
-sudo ./ltools.sh
-```
-
-也可以使用 Bash 运行：
-
-```bash
-sudo bash ltools.sh
-```
-
-选择菜单 `7` 后直接运行 BBR 工具，它会修改内核或网络参数。首次安装新内核后，请按照上游脚本提示决定是否重启，不要在没有 VPS 控制台或快照的情况下盲目操作。
-
-### 本地安装工具
-
-#### Speedtest测速
-
-首次选择菜单 `4` 时，LTOOLS 会安全下载并检查 Ookla 的 Packagecloud 软件源配置脚本，然后通过 `apt-get install speedtest` 安装官方 CLI。以后只运行本地 `speedtest` 命令，不会重复配置软件源。
-
-Ookla CLI 首次执行时可能显示许可协议与数据政策确认，请阅读终端提示后自行选择。
-
-#### VPS节点搭建
-
-每次选择菜单 `8`，LTOOLS 都会从原作者 `0xdabiaoge/singbox-lite` 下载 `singbox.sh`，完成 HTTPS 下载、HTML 响应拦截、Bash 语法检查和 SHA-256 显示后，更新到：
-
-```text
-/usr/local/bin/sb
-```
-
-不再优先运行已安装的旧副本；上游下载失败时直接停止，不回退旧版。原脚本的定时任务引用自身路径，因此仍保留稳定文件。也可以在终端直接调用该副本（不会自动刷新）：
-
-```bash
-sudo sb
-```
-
-该上游工具要求 root 权限；LTOOLS 菜单 `8` 每次从上游刷新，不使用本仓库的第三方镜像。
-
-#### 流量狗脚本
-
-每次选择菜单 `9` 都从原作者 `zywe03/realm-xwPF` 重新下载脚本，更新到：
-
-```text
-/usr/local/bin/port-traffic-dog.sh
-```
-
-下载成功后才运行，不复用旧版；保留稳定文件是因为上游定时任务与快捷命令会引用它，不能运行完就删除。流量狗会管理 `nftables`、`tc`、流量配额及定时任务，因此需要 root 权限，重要 VPS 建议先创建快照。BBR 已从 `Eric86777/vps-tcp-tune` 远程运行；仓库中的历史 `vps-tcp-tune-local/` 不参与主菜单调用。自有 NFT、SSH 和流量工具保持不变。
-
-#### NFT 转发脚本
-
-首次选择菜单 `10` 时，LTOOLS 会从本仓库 `nft-forward/nft-forward.sh` 下载并检查主脚本，然后安装为：
-
-```text
-/usr/local/bin/nft-forward
-```
-
-后续只运行本地副本。该工具会管理 DNAT 端口转发、IPv4 转发及 nftables 配置；执行“安装 nftables”时可能接管现有配置，但会先备份，建议在拥有 VPS 控制台或快照时操作。
-
-#### CPA软件安装
-
-菜单 `11` 会安全下载并检查 `kejilion.sh`，直接以 root/sudo 执行：
-
-```bash
-bash kejilion.sh app CLIProxyAPI
-```
-
-安装器会通过 Docker 部署 CLIProxyAPI，应用目录默认为 `/home/docker/CLIProxyAPI`，默认服务端口为 `8317`。安装过程中会要求设置管理密钥，请妥善保存，不要提交到 GitHub。
-
-#### SSH 登录管理
-
-菜单 `13` 使用 `sh` 运行本仓库的 [SSH 管理脚本](ssh-manager/README.md)，提供密码登录开关、端口修改、密钥登录开关与公钥导入、删除、修改。需要 root/sudo；操作前保留当前 SSH 会话，并确保有控制台或其他可用登录方式。
-
-#### 新建临时SSH
-
-菜单 `14` 会下载并检查 `LYISTR2/temp-ssh-tool` 的 `bootstrap.sh`，直接以 root/sudo 运行。它用于创建有明确到期时间的临时 SSH 账号；安装器会继续下载所需组件，并可能配置 PAM、systemd 与 OpenSSH 相关规则。运行前请确认自己仍保留可用的管理员登录方式，建议先创建 VPS 快照。
-
-#### 流量消耗工具
-
-菜单 `15` 会下载并检查本仓库 `traffic-burner/install.sh`，使用 `sh -n` 检查语法后，以 root/sudo 执行安装器。核心脚本和菜单均从本仓库下载，安装为 `tb` 和 `traffic-burner`，交互终端下安装完成后自动进入菜单。以后也可以直接运行 `tb`。
-
-对应的上游安装命令：
-
-```sh
-curl -fsSL https://raw.githubusercontent.com/LYISTR2/LTOOLS/main/traffic-burner/install.sh | sh
-```
-
-### 已安装旧版的迁移
-
-三个工具的源码、文档和原有许可证已统一保存在本仓库，原独立仓库将删除，旧下载地址不再可用。流量工具重新选择菜单 `15` 即会更新；SSH 管理通过菜单 `13` 获取当前版本。
-
-已安装旧版 `nft-forward` 的机器需要更新一次本地脚本（不修改转发规则），否则其内置更新仍指向旧仓库：
+曾从旧独立仓库安装 NFT 工具的用户，执行一次迁移（root 用户去掉 `sudo`）：
 
 ```bash
 curl -fsSLo nft-forward.sh https://raw.githubusercontent.com/LYISTR2/LTOOLS/main/nft-forward/nft-forward.sh && bash -n nft-forward.sh && sudo install -m 0755 nft-forward.sh /usr/local/bin/nft-forward
 ```
 
-## 公开仓库一键调用
+## 注意
 
-推荐使用下面这一条命令。它会强制 HTTPS、下载到临时文件、运行 Bash 语法检查，并在退出后自动清理：
-
-```bash
-bash -c 'set -Eeuo pipefail; f="$(mktemp)"; trap '\''rm -f "$f"'\'' EXIT; curl -qfsSL --proto "=https" --tlsv1.2 "https://raw.githubusercontent.com/LYISTR2/LTOOLS/refs/heads/main/ltools.sh?$(date +%s)" -o "$f"; bash -n "$f"; chmod 700 "$f"; if (( EUID == 0 )); then bash "$f"; elif command -v sudo >/dev/null 2>&1; then sudo bash "$f"; else printf "需要 root 或 sudo。\n" >&2; exit 1; fi'
-```
-
-已经以 root 登录 VPS，并且完全信任当前 `main` 分支时，也可以使用最短命令：
-
-```bash
-bash <(curl -qfsSL "https://raw.githubusercontent.com/LYISTR2/LTOOLS/refs/heads/main/ltools.sh?$(date +%s)")
-```
-
-## 部署为 GitHub 私有仓库
-
-仓库应先按照 [GitHub 官方可见性说明](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/managing-repository-settings/setting-repository-visibility) 设为私有：
-
-1. 打开仓库的 **Settings → General**。
-2. 在页面底部找到 **Danger Zone → Change repository visibility**。
-3. 选择 **Make private**，按 GitHub 提示确认仓库名。
-4. 合并包含 `ltools.sh` 和本说明的 PR 到 `main`。
-
-不要把 GitHub Token、VPS 密码、SSH 私钥或其他凭据提交到仓库。
-
-## 在 VPS 安全调用私有脚本
-
-### 推荐：GitHub CLI
-
-先在 VPS 安装 [GitHub CLI](https://github.com/cli/cli/blob/trunk/docs/install_linux.md)，然后按 [GitHub CLI 认证说明](https://cli.github.com/manual/gh_auth_login) 登录：
-
-```bash
-gh auth login --hostname github.com --git-protocol https --web
-gh auth status
-```
-
-选择 GitHub.com 和 HTTPS。无桌面的 VPS 会显示一次性代码；在自己的浏览器中完成授权即可。`gh` 会优先使用系统凭据存储；如果系统没有可用的凭据存储，它可能回退到普通文本文件。请用 `gh auth status` 检查存储位置和状态。
-
-之后粘贴下面这一条命令即可运行私有仓库 `main` 分支中的脚本：
-
-```bash
-bash -c 'set -Eeuo pipefail; f="$(mktemp)"; trap '\''rm -f "$f"'\'' EXIT; gh api -H "Accept: application/vnd.github.raw+json" -H "X-GitHub-Api-Version: 2022-11-28" "/repos/LYISTR2/LTOOLS/contents/ltools.sh?ref=main" >"$f"; bash -n "$f"; chmod 700 "$f"; if (( EUID == 0 )); then bash "$f"; elif command -v sudo >/dev/null 2>&1; then sudo bash "$f"; else printf "需要 root 或 sudo。\n" >&2; exit 1; fi'
-```
-
-这条命令不会把 Token 写进命令行或 shell 历史；它使用 [GitHub Contents API 的 raw 响应](https://docs.github.com/en/rest/repos/contents?apiVersion=2022-11-28#get-repository-content)，先下载到权限受限的临时文件，再做 Bash 语法检查，最后执行并自动删除临时文件。
-
-不建议使用 `curl <private-raw-url> | bash`：私有文件需要认证，把 Token 拼进 URL 会泄露到历史、日志或进程信息，而管道执行也没有下载检查和临时文件审阅环节。
-
-如需日常使用，可在 VPS 上创建一个只属于 root 的快捷命令：
-
-```bash
-sudo install -d -m 700 /root/bin
-sudo tee /root/bin/ltools >/dev/null <<'EOF'
-#!/usr/bin/env bash
-set -Eeuo pipefail
-file="$(mktemp)"
-trap 'rm -f "$file"' EXIT
-gh api \
-  -H "Accept: application/vnd.github.raw+json" \
-  -H "X-GitHub-Api-Version: 2022-11-28" \
-  "/repos/LYISTR2/LTOOLS/contents/ltools.sh?ref=main" >"$file"
-bash -n "$file"
-chmod 700 "$file"
-bash "$file"
-EOF
-sudo chmod 700 /root/bin/ltools
-```
-
-以后执行：
-
-```bash
-sudo /root/bin/ltools
-```
-
-如果 `gh` 是以普通用户身份登录的，请使用前面的单行命令；`sudo` 默认看不到普通用户的 `gh` 登录状态。若希望 `/root/bin/ltools` 直接可用，应执行 `sudo gh auth login`，让 root 拥有独立的最小权限认证。
-
-### 无 GitHub CLI：Fine-grained PAT
-
-GitHub CLI 是首选。如果必须使用 Token，请创建仅限 `LYISTR2/LTOOLS`、仅有 **Contents: Read-only** 权限的 Fine-grained PAT。运行时交互输入，不要把 Token 写进 URL、脚本或命令历史：
-
-```bash
-bash <<'BASH'
-set -Eeuo pipefail
-read -rsp 'GitHub Token: ' GITHUB_TOKEN; echo
-workdir="$(mktemp -d)"
-trap 'unset GITHUB_TOKEN; rm -rf "$workdir"' EXIT
-chmod 700 "$workdir"
-printf 'header = "Authorization: Bearer %s"\n' "$GITHUB_TOKEN" >"$workdir/curl.conf"
-chmod 600 "$workdir/curl.conf"
-curl -qfsSL --proto '=https' --tlsv1.2 \
-  --config "$workdir/curl.conf" \
-  -H 'Accept: application/vnd.github.raw+json' \
-  -H 'X-GitHub-Api-Version: 2022-11-28' \
-  'https://api.github.com/repos/LYISTR2/LTOOLS/contents/ltools.sh?ref=main' \
-  -o "$workdir/ltools.sh"
-unset GITHUB_TOKEN
-bash -n "$workdir/ltools.sh"
-if (( EUID == 0 )); then
-  bash "$workdir/ltools.sh"
-elif command -v sudo >/dev/null 2>&1; then
-  sudo bash "$workdir/ltools.sh"
-else
-  printf '需要 root 或 sudo。\n' >&2
-  exit 1
-fi
-BASH
-```
-
-用完不再需要时，请在 GitHub 的 **Settings → Developer settings → Personal access tokens** 中撤销该 Token。
-
-## 更新与固定版本
-
-上面的调用默认读取 `main` 最新版本。对稳定性要求较高时，可以把 `ref=main` 改成已审核的提交 SHA，从而固定工具箱版本。
-
-BBR 上游默认跟随 `main`。如需固定上游版本，可传入提交 SHA：
-
-```bash
-sudo LTOOLS_BBR_REF='<commit-sha>' bash ltools.sh
-```
-
-## 安全说明
-
-LTOOLS 会在运行时下载第三方脚本。下载过程强制 HTTPS，拒绝空文件和常见 HTML 错误页，执行前运行 `bash -n`（traffic-burner 安装器使用 `sh -n`）并显示 SHA-256；这些措施能发现传输与格式异常，但不能证明第三方代码本身可信。重要 VPS 应先创建快照，并在执行前审阅上游变更或固定提交 SHA。
-
-上游项目：
-
-- [Check.Place](https://check.place)
-- [NodeQuality](https://github.com/LloydAsp/NodeQuality)
-- [Ookla Speedtest CLI](https://www.speedtest.net/apps/cli)
-- [nws.sh](https://nws.sh)
-- [TcpQuality](https://github.com/ibsgss/TcpQuality)
-- [0xdabiaoge/singbox-lite](https://github.com/0xdabiaoge/singbox-lite)
-- [端口流量狗](https://github.com/zywe03/realm-xwPF/blob/main/port-traffic-dog-README.md)
-- [NFT 转发（本仓库）](nft-forward/README.md)
-- [kejilion/apps](https://github.com/kejilion/apps)
-- [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI)
-- [Eric86777/vps-tcp-tune](https://github.com/Eric86777/vps-tcp-tune)
-- [LYISTR2/temp-ssh-tool](https://github.com/LYISTR2/temp-ssh-tool)
-- [流量消耗工具（本仓库）](traffic-burner/README.md)
-- [SSH 管理（本仓库）](ssh-manager/README.md)
+- 主菜单面向 Debian；内置 SSH 与流量工具支持 Debian / Ubuntu / Alpine，第三方工具兼容性以各自说明为准。
+- 测速和流量任务会消耗额度；100 MB / 1000 MB 预设选中即启动。
+- SSH、防火墙和内核操作可能影响连接，操作前保留现有 SSH 会话，并准备快照或控制台。
+- 下载检查不等于代码安全审计；仅在信任上游代码时运行，不要将密码、密钥或 Token 提交到仓库。
