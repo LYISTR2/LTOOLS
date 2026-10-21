@@ -25,8 +25,9 @@
 | 10 | NFT 转发脚本 | 本地安装的 `/usr/local/bin/nft-forward` |
 | 11 | CPA软件安装 | `kejilion.sh app CLIProxyAPI` |
 | 12 | TG-NS关键词Bot | `LYISTR2/NS-Mirror` 安装器 |
+| 13 | SSH 登录管理 | 本仓库 `ssh-manager/ssh-manager.sh`（使用 `sh`） |
 | 14 | 新建临时SSH | `LYISTR2/temp-ssh-tool` 安装器 |
-| 15 | 流量消耗工具 | `LYISTR2/traffic-burner` 的 `install.sh`（使用 `sh`） |
+| 15 | 流量消耗工具 | 本仓库 `traffic-burner/install.sh`（使用 `sh`） |
 | 0 | 退出 | — |
 
 脚本会自动检查 `curl` 和 `wget`。Debian 系统缺少依赖时，会通过 `apt-get` 安装 `ca-certificates`、`curl` 和 `wget`。选择菜单编号后直接运行，LTOOLS 不再要求二次输入确认；上游工具自身的参数输入与操作提示仍由其处理。每项任务结束后，按任意键即可回到主菜单。
@@ -91,7 +92,7 @@ sudo sb
 
 #### NFT 转发脚本
 
-首次选择菜单 `10` 时，LTOOLS 会从 `LYISTR2/nft-forward` 下载并检查主脚本，然后安装为：
+首次选择菜单 `10` 时，LTOOLS 会从本仓库 `nft-forward/nft-forward.sh` 下载并检查主脚本，然后安装为：
 
 ```text
 /usr/local/bin/nft-forward
@@ -109,18 +110,32 @@ bash kejilion.sh app CLIProxyAPI
 
 安装器会通过 Docker 部署 CLIProxyAPI，应用目录默认为 `/home/docker/CLIProxyAPI`，默认服务端口为 `8317`。安装过程中会要求设置管理密钥，请妥善保存，不要提交到 GitHub。
 
+#### SSH 登录管理
+
+菜单 `13` 使用 `sh` 运行本仓库的 [SSH 管理脚本](ssh-manager/README.md)，提供密码登录开关、端口修改、密钥登录开关与公钥导入、删除、修改。需要 root/sudo；操作前保留当前 SSH 会话，并确保有控制台或其他可用登录方式。
+
 #### 新建临时SSH
 
 菜单 `14` 会下载并检查 `LYISTR2/temp-ssh-tool` 的 `bootstrap.sh`，直接以 root/sudo 运行。它用于创建有明确到期时间的临时 SSH 账号；安装器会继续下载所需组件，并可能配置 PAM、systemd 与 OpenSSH 相关规则。运行前请确认自己仍保留可用的管理员登录方式，建议先创建 VPS 快照。
 
 #### 流量消耗工具
 
-菜单 `15` 会下载并检查 `LYISTR2/traffic-burner` 的 `install.sh`，使用 `sh -n` 检查语法后，直接以 root/sudo 执行 `sh` 安装器。上游会安装 `tb` 交互菜单和 `traffic-burner` 命令，交互终端下安装完成后自动进入菜单。以后也可以直接运行 `tb`。
+菜单 `15` 会下载并检查本仓库 `traffic-burner/install.sh`，使用 `sh -n` 检查语法后，以 root/sudo 执行安装器。核心脚本和菜单均从本仓库下载，安装为 `tb` 和 `traffic-burner`，交互终端下安装完成后自动进入菜单。以后也可以直接运行 `tb`。
 
 对应的上游安装命令：
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/LYISTR2/traffic-burner/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/LYISTR2/LTOOLS/main/traffic-burner/install.sh | sh
+```
+
+### 已安装旧版的迁移
+
+三个工具的源码、文档和原有许可证已统一保存在本仓库，原独立仓库将删除，旧下载地址不再可用。流量工具重新选择菜单 `15` 即会更新；SSH 管理通过菜单 `13` 获取当前版本。
+
+已安装旧版 `nft-forward` 的机器需要更新一次本地脚本（不修改转发规则），否则其内置更新仍指向旧仓库：
+
+```bash
+curl -fsSLo nft-forward.sh https://raw.githubusercontent.com/LYISTR2/LTOOLS/main/nft-forward/nft-forward.sh && bash -n nft-forward.sh && sudo install -m 0755 nft-forward.sh /usr/local/bin/nft-forward
 ```
 
 ## 公开仓库一键调用
@@ -256,9 +271,10 @@ LTOOLS 会在运行时下载第三方脚本。下载过程强制 HTTPS，拒绝�
 - [TcpQuality](https://github.com/ibsgss/TcpQuality)
 - [0xdabiaoge/singbox-lite](https://github.com/0xdabiaoge/singbox-lite)
 - [端口流量狗](https://github.com/zywe03/realm-xwPF/blob/main/port-traffic-dog-README.md)
-- [LYISTR2/nft-forward](https://github.com/LYISTR2/nft-forward)
+- [NFT 转发（本仓库）](nft-forward/README.md)
 - [kejilion/apps](https://github.com/kejilion/apps)
 - [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI)
 - [Eric86777/vps-tcp-tune](https://github.com/Eric86777/vps-tcp-tune)
 - [LYISTR2/temp-ssh-tool](https://github.com/LYISTR2/temp-ssh-tool)
-- [LYISTR2/traffic-burner](https://github.com/LYISTR2/traffic-burner)
+- [流量消耗工具（本仓库）](traffic-burner/README.md)
+- [SSH 管理（本仓库）](ssh-manager/README.md)
