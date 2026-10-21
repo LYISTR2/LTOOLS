@@ -3,7 +3,7 @@
 set -Eeuo pipefail
 IFS=$'\n\t'
 
-readonly LTOOLS_VERSION="2.11.0"
+readonly LTOOLS_VERSION="2.11.1"
 readonly SSH_MANAGER_SOURCE_URL="https://raw.githubusercontent.com/LYISTR2/LTOOLS/main/ssh-manager/ssh-manager.sh"
 readonly CHECK_PLACE_URL="https://check.place"
 readonly NODEQUALITY_URL="https://run.NodeQuality.com"
@@ -390,7 +390,7 @@ install_persistent_tool() {
     ACTIVE_TEMP_FILE="${script_file}"
     chmod 600 "${script_file}"
 
-    info "首次运行，正在下载并部署到 ${install_path}"
+    info "正在从来源仓库下载并部署到 ${install_path}"
     info "来源：${source_url}"
 
     if ! download_script "${source_url}" "${script_file}"; then
@@ -462,11 +462,15 @@ run_persistent_tool() {
 }
 
 run_vps_node_builder() {
-    run_persistent_tool "VPS节点搭建" "${SB_SOURCE_URL}" "${SB_INSTALL_PATH}"
+    # Upstream cron jobs reference the script itself; keep a stable path,
+    # but always refresh from the author's repository before executing.
+    install_persistent_tool "代理节点管理" "${SB_SOURCE_URL}?_=$(date +%s)" "${SB_INSTALL_PATH}" || return 1
+    run_persistent_tool "代理节点管理" "${SB_SOURCE_URL}" "${SB_INSTALL_PATH}"
 }
 
 run_traffic_dog() {
-    run_persistent_tool "流量狗脚本" "${DOG_SOURCE_URL}" "${DOG_INSTALL_PATH}"
+    install_persistent_tool "端口流量与限额管理" "${DOG_SOURCE_URL}?_=$(date +%s)" "${DOG_INSTALL_PATH}" || return 1
+    run_persistent_tool "端口流量与限额管理" "${DOG_SOURCE_URL}" "${DOG_INSTALL_PATH}"
 }
 
 run_nft_forward() {
@@ -640,7 +644,7 @@ build_menu_lines() {
     local -a test_hints=("Check.Place -N" "Check.Place -H" "NodeQuality" "Ookla · 本地" "nws.sh" "TcpQuality")
     local -a tool_numbers=("7" "8" "9" "10" "11" "12" "13" "14" "15")
     local -a tool_labels=("BBR 与网络优化" "代理节点管理" "端口流量与限额管理" "端口转发（nftables）" "CLIProxyAPI 安装" "Telegram 关键词机器人" "SSH 登录与公钥管理" "临时 SSH 账号" "流量消耗（上传/下载）")
-    local -a tool_hints=("Eric86777/vps-tcp-tune · 远程" "singbox-lite · 本地" "port-traffic-dog · 本地" "LTOOLS/nft-forward · 本地" "kejilion.sh · CLIProxyAPI" "NS-Mirror · 安装" "LTOOLS/ssh-manager · 交互" "temp-ssh-tool · 安装" "LTOOLS/traffic-burner · 安装")
+    local -a tool_hints=("Eric86777/vps-tcp-tune · 远程" "0xdabiaoge/singbox-lite · 上游" "zywe03/realm-xwPF · 上游" "LTOOLS/nft-forward · 本地" "kejilion.sh · CLIProxyAPI" "NS-Mirror · 安装" "LTOOLS/ssh-manager · 交互" "temp-ssh-tool · 安装" "LTOOLS/traffic-burner · 安装")
     local -a all_numbers=("${test_numbers[@]}" "${tool_numbers[@]}" "0")
     local -a all_labels=("${test_labels[@]}" "${tool_labels[@]}" "退出")
 

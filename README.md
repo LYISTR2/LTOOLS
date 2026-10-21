@@ -20,8 +20,8 @@
 | 选项 | 功能 | 上游入口 |
 | ---: | --- | --- |
 | 7 | BBR 网络优化 | `Eric86777/vps-tcp-tune` 的 `net-tcp-tune.sh` |
-| 8 | VPS节点搭建 | 本地安装的 `/usr/local/bin/sb`（singbox-lite） |
-| 9 | 流量狗脚本 | 本地安装的 `/usr/local/bin/port-traffic-dog.sh` |
+| 8 | 代理节点管理 | 每次从 `0xdabiaoge/singbox-lite` 下载 |
+| 9 | 端口流量与限额管理 | 每次从 `zywe03/realm-xwPF` 下载 |
 | 10 | NFT 转发脚本 | 本地安装的 `/usr/local/bin/nft-forward` |
 | 11 | CPA软件安装 | `kejilion.sh app CLIProxyAPI` |
 | 12 | TG-NS关键词Bot | `LYISTR2/NS-Mirror` 安装器 |
@@ -76,29 +76,29 @@ Ookla CLI 首次执行时可能显示许可协议与数据政策确认，请阅�
 
 #### VPS节点搭建
 
-首次选择菜单 `8` 时，LTOOLS 会从 `0xdabiaoge/singbox-lite` 下载 `singbox.sh`，完成 HTTPS 下载、HTML 响应拦截、Bash 语法检查和 SHA-256 显示后，安装为：
+每次选择菜单 `8`，LTOOLS 都会从原作者 `0xdabiaoge/singbox-lite` 下载 `singbox.sh`，完成 HTTPS 下载、HTML 响应拦截、Bash 语法检查和 SHA-256 显示后，更新到：
 
 ```text
 /usr/local/bin/sb
 ```
 
-以后再次选择菜单 `8`，只会运行这份本地脚本。也可以在终端直接调用：
+不再优先运行已安装的旧副本；上游下载失败时直接停止，不回退旧版。原脚本的定时任务引用自身路径，因此仍保留稳定文件。也可以在终端直接调用该副本（不会自动刷新）：
 
 ```bash
 sudo sb
 ```
 
-该上游工具要求 root 权限。需要更新时，可进入 `sb` 自身菜单并选择 `13. 更新脚本`；如果它被卸载，下一次选择 LTOOLS 菜单 `8` 会自动重新部署。
+该上游工具要求 root 权限；LTOOLS 菜单 `8` 每次从上游刷新，不使用本仓库的第三方镜像。
 
 #### 流量狗脚本
 
-首次选择菜单 `9` 时，脚本会持久安装为：
+每次选择菜单 `9` 都从原作者 `zywe03/realm-xwPF` 重新下载脚本，更新到：
 
 ```text
 /usr/local/bin/port-traffic-dog.sh
 ```
 
-后续只运行本地副本，避免定时任务引用临时文件。流量狗会管理 `nftables`、`tc`、流量配额及定时任务，因此需要 root 权限，重要 VPS 建议先创建快照。
+下载成功后才运行，不复用旧版；保留稳定文件是因为上游定时任务与快捷命令会引用它，不能运行完就删除。流量狗会管理 `nftables`、`tc`、流量配额及定时任务，因此需要 root 权限，重要 VPS 建议先创建快照。BBR 已从 `Eric86777/vps-tcp-tune` 远程运行；仓库中的历史 `vps-tcp-tune-local/` 不参与主菜单调用。自有 NFT、SSH 和流量工具保持不变。
 
 #### NFT 转发脚本
 
