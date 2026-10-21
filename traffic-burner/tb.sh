@@ -63,7 +63,8 @@ ask() {
   if [ -n "${2:-}" ]; then printf ' %s[%s]%s' "$C_D" "$2" "$C_R"; fi
   printf ': '
   REPLY=
-  IFS= read -r REPLY || REPLY=
+  IFS= read -r REPLY || { printf '\n输入结束，退出。\n'; exit 0; }
+  REPLY=$(printf '%s' "$REPLY" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
   [ -n "$REPLY" ] || REPLY=${2:-}
 }
 
@@ -74,7 +75,10 @@ ask_num() {
     case "$REPLY" in
       '') return 0 ;;
       *[!0-9]*) printf '  %s请输入数字%s\n' "$C_RD" "$C_R" ;;
-      *) return 0 ;;
+      *)
+        while [ "${#REPLY}" -gt 1 ] && [ "${REPLY#0}" != "$REPLY" ]; do REPLY=${REPLY#0}; done
+        if [ "${#REPLY}" -gt 9 ]; then printf '  数值过大，请输入不超过 9 位的整数\n'; continue; fi
+        return 0 ;;
     esac
   done
 }
@@ -166,18 +170,28 @@ show_status() {
 
 launch_confirm() { # $1 = 参数串
   printf '  将执行: %straffic-burner %s%s\n' "$C_B" "$1" "$C_R"
-  ask '  确认启动? [Y/n]' 'y'
-  case "$REPLY" in
-    n|N|no|NO) printf '  已取消\n'; return 0 ;;
-  esac
+  while :; do
+    ask '  确认消耗流量? [y/N]' 'n'
+    case "$REPLY" in
+      y|Y|yes|YES) break ;;
+      n|N|no|NO) printf '  已取消\n'; return 0 ;;
+      *) printf '  请输入 y 或 n\n' ;;
+    esac
+  done
   start_engine "$1"
 }
 
 custom_run() {
   line
   printf '%s== 自定义运行 ==%s\n' "$C_B" "$C_R"
-  ask "  模式 (1=下载 2=上传)" "1"
-  case "$REPLY" in 2) _mode=2 ;; *) _mode=1 ;; esac
+  while :; do
+    ask "  模式 (1=下载 2=上传 0=返回)" "1"
+    case "$REPLY" in
+      0|q|Q) return ;;
+      1|2) _mode=$REPLY; break ;;
+      *) printf '  请输入 0、1 或 2\n' ;;
+    esac
+  done
   _mflag=; _uflag=
   if [ "$_mode" = 2 ]; then
     _modetxt=上传
@@ -254,9 +268,9 @@ while :; do
   printf ' %straffic-burner 控制台%s   状态: %s\n' "$C_B" "$C_R" "$(state_text)"
   printf '%s' "$C_C"; line; printf '%s' "$C_R"
   cat <<'MENU'
-  1) 快跑 100 MB       (下载, 2 并发)
-  2) 标准 1 GB         (下载, 4 并发)
-  3) 挂机 1 小时       (下载, 4 并发, 不限量)
+  1) 下载 100 MB       (2 并发，选中即启动)
+  2) 下载 1000 MB      (4 并发，选中即启动)
+  3) 持续下载 1 小时   (4 并发，不限流量，需确认)
   4) 自定义运行        (下载/上传, 时长/流量/并发/限速)
   5) 查看状态
   6) 停止
@@ -266,9 +280,11 @@ while :; do
 MENU
   printf '  选择 [0-8]: '
   if ! IFS= read -r _ch; then printf '\n  (输入结束, 退出)\n'; _ch=0; fi
+  _ch=$(printf '%s' "$_ch" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
   case "$_ch" in
-    1) launch_confirm "-t 100"; enter ;;
-    2) launch_confirm "-t 1000 -w 4"; enter ;;
+    '') continue ;;
+    1) start_engine "-t 100" ;;
+    2) start_engine "-t 1000 -w 4" ;;
     3) launch_confirm "-d 3600 -w 4"; enter ;;
     4) custom_run; enter ;;
     5) show_status; enter ;;

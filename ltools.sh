@@ -3,7 +3,7 @@
 set -Eeuo pipefail
 IFS=$'\n\t'
 
-readonly LTOOLS_VERSION="2.10.0"
+readonly LTOOLS_VERSION="2.11.0"
 readonly SSH_MANAGER_SOURCE_URL="https://raw.githubusercontent.com/LYISTR2/LTOOLS/main/ssh-manager/ssh-manager.sh"
 readonly CHECK_PLACE_URL="https://check.place"
 readonly NODEQUALITY_URL="https://run.NodeQuality.com"
@@ -502,12 +502,6 @@ run_bbr_tool() {
     run_remote_script "BBR 网络优化" "${BBR_SOURCE_URL}?_=$(date +%s)" "yes"
 }
 
-pause_menu() {
-    printf '\n%b' "${DIM}按任意键返回主菜单...${RESET}"
-    IFS= read -r -s -n 1 _ || true
-    printf '\n'
-}
-
 clear_screen() {
     if [[ -t 1 && "${TERM:-dumb}" != "dumb" ]] && command -v clear >/dev/null 2>&1; then
         clear
@@ -642,10 +636,10 @@ build_menu_lines() {
     local value=""
     local width=0
     local -a test_numbers=("1" "2" "3" "4" "5" "6")
-    local -a test_labels=("网络质量体检" "硬件质量体检" "VPS 综合质量体检" "Speedtest测速" "国际测速" "TCP质量测试")
+    local -a test_labels=("网络质量检测" "硬件性能检测" "VPS 综合评测" "带宽测速（Ookla）" "国际网络测速" "TCP 连接质量检测")
     local -a test_hints=("Check.Place -N" "Check.Place -H" "NodeQuality" "Ookla · 本地" "nws.sh" "TcpQuality")
     local -a tool_numbers=("7" "8" "9" "10" "11" "12" "13" "14" "15")
-    local -a tool_labels=("BBR 网络优化" "VPS节点搭建" "流量狗脚本" "NFT 转发脚本" "CPA软件安装" "TG-NS关键词Bot" "SSH 登录管理" "新建临时SSH" "流量消耗工具")
+    local -a tool_labels=("BBR 与网络优化" "代理节点管理" "端口流量与限额管理" "端口转发（nftables）" "CLIProxyAPI 安装" "Telegram 关键词机器人" "SSH 登录与公钥管理" "临时 SSH 账号" "流量消耗（上传/下载）")
     local -a tool_hints=("Eric86777/vps-tcp-tune · 远程" "singbox-lite · 本地" "port-traffic-dog · 本地" "LTOOLS/nft-forward · 本地" "kejilion.sh · CLIProxyAPI" "NS-Mirror · 安装" "LTOOLS/ssh-manager · 交互" "temp-ssh-tool · 安装" "LTOOLS/traffic-burner · 安装")
     local -a all_numbers=("${test_numbers[@]}" "${tool_numbers[@]}" "0")
     local -a all_labels=("${test_labels[@]}" "${tool_labels[@]}" "退出")
@@ -778,8 +772,23 @@ show_menu() {
     render_menu
 }
 
+normalize_choice() {
+    local value="$1"
+    value="${value#"${value%%[![:space:]]*}"}"
+    value="${value%"${value##*[![:space:]]}"}"
+    value="${value,,}"
+    if [[ "$value" =~ ^[0-9]+$ ]]; then
+        while [[ ${#value} -gt 1 && "$value" == 0* ]]; do value="${value#0}"; done
+    fi
+    REPLY="$value"
+}
+
 main() {
-    local choice=""
+    local choice="" pending="" action="" result=0
+    local -a actions=("" run_network_check run_hardware_check run_nodequality_check
+        run_speedtest_cli run_international_speedtest run_tcpquality_check
+        run_bbr_tool run_vps_node_builder run_traffic_dog run_nft_forward
+        run_cpa_install run_tg_ns_bot run_ssh_manager run_temp_ssh run_traffic_burner)
 
     if [[ "${1:-}" == "--version" ]]; then
         printf 'LTOOLS %s\n' "${LTOOLS_VERSION}"
@@ -791,83 +800,44 @@ main() {
     ensure_dependencies
 
     while true; do
-        show_menu
-        printf '请选择 [0-15]: '
-        if ! IFS= read -r choice; then
-            printf '\n'
-            return 0
+        if [[ -n "$pending" ]]; then
+            choice="$pending"
+            pending=""
+        else
+            show_menu
+            while true; do
+                printf '请选择 [1-15，0/q 退出，回车刷新]: '
+                if ! IFS= read -r choice; then printf '\n'; return 0; fi
+                normalize_choice "$choice"
+                choice="$REPLY"
+                case "$choice" in
+                    ''|0|q|quit|exit|[1-9]|1[0-5]) break ;;
+                    *) warn "无效选项，请输入 1-15 或 0/q；不会执行任何操作。" ;;
+                esac
+            done
         fi
-
-        case "${choice}" in
-            1)
-                run_network_check || true
-                pause_menu
-                ;;
-            2)
-                run_hardware_check || true
-                pause_menu
-                ;;
-            3)
-                run_nodequality_check || true
-                pause_menu
-                ;;
-            4)
-                run_speedtest_cli || true
-                pause_menu
-                ;;
-            5)
-                run_international_speedtest || true
-                pause_menu
-                ;;
-            6)
-                run_tcpquality_check || true
-                pause_menu
-                ;;
-            7)
-                run_bbr_tool || true
-                pause_menu
-                ;;
-            8)
-                run_vps_node_builder || true
-                pause_menu
-                ;;
-            9)
-                run_traffic_dog || true
-                pause_menu
-                ;;
-            10)
-                run_nft_forward || true
-                pause_menu
-                ;;
-            11)
-                run_cpa_install || true
-                pause_menu
-                ;;
-            12)
-                run_tg_ns_bot || true
-                pause_menu
-                ;;
-            13)
-                run_ssh_manager || true
-                pause_menu
-                ;;
-            14)
-                run_temp_ssh || true
-                pause_menu
-                ;;
-            15)
-                run_traffic_burner || true
-                pause_menu
-                ;;
-            0|q|Q)
-                printf '\n%b\n' "${DIM}已退出 LTOOLS。${RESET}"
-                return 0
-                ;;
-            *)
-                warn "无效选项，请输入 0 到 15。"
-                pause_menu
-                ;;
+        case "$choice" in
+            '') continue ;;
+            0|q|quit|exit) printf '\n已退出 LTOOLS。\n'; return 0 ;;
         esac
+        action="${actions[choice]}"
+        result=0
+        "$action" || result=$?
+        # Interactive managers already have their own return/exit menus.
+        if [[ "$choice" =~ ^([7-9]|10|13|15)$ && "$result" == 0 ]]; then
+            continue
+        fi
+        # Keep diagnostic output visible without consuming a single key/newline.
+        while true; do
+            printf '\n回车返回菜单，或输入下一项编号 [1-15，0/q 退出]: '
+            if ! IFS= read -r choice; then printf '\n'; return 0; fi
+            normalize_choice "$choice"
+            case "$REPLY" in
+                '') break ;;
+                0|q|quit|exit|[1-9]|1[0-5]) pending="$REPLY"; break ;;
+                *) warn "请输入有效编号，或直接回车。" ;;
+            esac
+        done
     done
 }
 

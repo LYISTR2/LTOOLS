@@ -66,10 +66,17 @@ ask() {
 confirm() {
   _msg=$1; _def=${2:-n}
   if [ "$_def" = y ]; then _hint='Y/n'; else _hint='y/N'; fi
-  printf '%s [%s]: ' "$_msg" "$_hint" >&2
-  IFS= read -r _ans || _ans=""
-  [ -z "$_ans" ] && _ans=$_def
-  case "$_ans" in y|Y|yes|YES|Yes) return 0;; *) return 1;; esac
+  while :; do
+    printf '%s [%s]: ' "$_msg" "$_hint" >&2
+    IFS= read -r _ans || return 1
+    _ans=$(printf '%s' "$_ans" | tr '[:upper:]' '[:lower:]' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+    [ -z "$_ans" ] && _ans=$_def
+    case "$_ans" in
+      y|yes) return 0 ;;
+      n|no|q|quit|exit) return 1 ;;
+      *) warn "请输入 y 或 n，q 取消。" ;;
+    esac
+  done
 }
 
 pause() { printf '按回车键继续...' >&2; IFS= read -r _x || true; }
